@@ -1,5 +1,5 @@
 # Murmur
-
+Website https://hbrimer.github.io/murmur/
 **Private, offline transcription & summaries.** Transcribe audio/video files or live
 mic recordings, get an auto-summary and a searchable local library, and export to
 txt / md / srt — all on-device. Your audio never leaves your machine.
