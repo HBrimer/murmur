@@ -3,7 +3,7 @@
  "teamId": "bf98de2caa899b64c9e1beee",
  "hostId": "f7af64e950969710",
  "epoch": 1,
- "updated": 1792898223535,
+ "updated": 1792899083796,
  "members": [
   {
    "id": "f7af64e950969710",
@@ -11,10 +11,19 @@
    "boxPub": "eydYZZC4vBwbrrJ0YD95IN1yQaUCCvg-q_eEskMkr1w",
    "role": "host",
    "joined": 1792898223535
+  },
+  {
+   "id": "3aa460019f421bc8",
+   "signPub": "e5JeMZC2uBvg8f78l9gpmOirqh97b3UDJO_N3aTeHNI",
+   "boxPub": "lihvott1AD9dl5H_5Es78LGWd-YQ_uMCIezjz1zj920",
+   "role": "member",
+   "joined": 1792899083796,
+   "proof": "DX57GYTEwy5QYzxFmgMH2x4druRZvR5LsJz1RACo1UI="
   }
  ],
  "wraps": {
-  "f7af64e950969710": "kTeCGJNdXfIxPLYSNxzjSvTDFVkxuSC+Gp9jMriPxRQEdGfdXJod2BwsnsbP5qLQagCDKU8/9SKGaf0Oq795KP4/X99NDg4a0lDebFXIit+qxiTHgy2KHskWWpFFVu2O5q9+oLMqkD/5WXZJ5Ko5U/K05alj9wBAobJZqg=="
+  "f7af64e950969710": "kTeCGJNdXfIxPLYSNxzjSvTDFVkxuSC+Gp9jMriPxRQEdGfdXJod2BwsnsbP5qLQagCDKU8/9SKGaf0Oq795KP4/X99NDg4a0lDebFXIit+qxiTHgy2KHskWWpFFVu2O5q9+oLMqkD/5WXZJ5Ko5U/K05alj9wBAobJZqg==",
+  "3aa460019f421bc8": "QyRdJOnYfv5DnxU87cigEpY8rb/Il7bj6IOm2OVmSncRTlKkikEXLqQ7u/3+505OMcy4UTkvZb7iy4VhHZZETkYXcJf+FoOQUDF5aGEFgFDGHUoBGIl0bTLZXn6Muwbm9Q40yDlKKrSeifE0FX1HojCINK52cPStX6PkWQ=="
  },
- "sig": "RKQG4thqOr1FZteAJFQzrOAB/O2y/+MVNeZ3tcom7huP8hdpYZ0LOXdemXi9R4r90uKfRdbxH1FvIIJFrGFUCw=="
+ "sig": "twuBbrKtzb72XIxyy4SdrTEq4Lr3GGR888tUQpan2CXjMKOJBw63mgNbWKb/C76spdnTXZ30i+0hxDEWZEodDw=="
 }
