@@ -26,6 +26,10 @@ function b64url(buf) {
 }
 
 function keygen() {
+  // Regenerating would silently invalidate every key already sold.
+  if (fs.existsSync(PRIV) && !process.argv.includes('--force')) {
+    return console.error('Refusing to overwrite existing', PRIV, '\nAll issued keys would stop working. Pass --force if you really mean it.');
+  }
   fs.mkdirSync(SECRETS, { recursive: true });
   const { publicKey, privateKey } = crypto.generateKeyPairSync('ed25519');
   const pub = publicKey.export({ type: 'spki', format: 'pem' });
@@ -42,13 +46,17 @@ function arg(name, def) {
 }
 
 function sign() {
+  // A typo here would silently issue the wrong key (NaN days = perpetual).
+  const days = Number(arg('days', '0'));
+  if (!Number.isInteger(days) || days < 0) return console.error('--days must be a whole number (0 = perpetual)');
+  const tier = arg('tier', 'personal');
+  if (!['personal', 'pro'].includes(tier)) return console.error('--tier must be personal or pro');
   if (!fs.existsSync(PRIV)) return console.error('No private key. Run: node scripts/licensing.js keygen');
   const privateKey = crypto.createPrivateKey(fs.readFileSync(PRIV, 'utf8'));
-  const days = Number(arg('days', '0'));
   const payload = {
     name: arg('name', 'Customer'),
     email: arg('email', ''),
-    tier: arg('tier', 'personal'),
+    tier,
     exp: days > 0 ? Date.now() + days * 86400000 : 0
   };
   const p = b64url(JSON.stringify(payload));

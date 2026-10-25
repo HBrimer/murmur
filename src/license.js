@@ -28,19 +28,23 @@ function b64urlToBuf(s) {
   return Buffer.from(s.replace(/-/g, '+').replace(/_/g, '/'), 'base64');
 }
 
-function verifyKey(key) {
-  if (!PUBLIC_KEY_PEM) return { valid: false, reason: 'no-public-key' };
-  if (!key || key.indexOf('.') < 0) return { valid: false, reason: 'malformed' };
-  const [p, s] = key.trim().split('.');
+// publicKeyPem is overridable so tests can verify against a throwaway keypair.
+function verifyKey(key, publicKeyPem = PUBLIC_KEY_PEM) {
+  if (!publicKeyPem) return { valid: false, reason: 'no-public-key' };
+  if (typeof key !== 'string') return { valid: false, reason: 'malformed' };
+  const parts = key.trim().split('.');
+  if (parts.length !== 2 || !parts[0] || !parts[1]) return { valid: false, reason: 'malformed' };
+  const [p, s] = parts;
   let payload;
   try {
     payload = JSON.parse(b64urlToBuf(p).toString('utf8'));
   } catch {
     return { valid: false, reason: 'malformed' };
   }
+  if (!payload || typeof payload !== 'object') return { valid: false, reason: 'malformed' };
   let ok = false;
   try {
-    ok = crypto.verify(null, Buffer.from(p), PUBLIC_KEY_PEM, b64urlToBuf(s));
+    ok = crypto.verify(null, Buffer.from(p), publicKeyPem, b64urlToBuf(s));
   } catch {
     return { valid: false, reason: 'bad-signature' };
   }

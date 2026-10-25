@@ -28,7 +28,11 @@ function load() {
 
 function save(patch) {
   const next = { ...load(), ...patch };
-  fs.writeFileSync(FILE, JSON.stringify(next, null, 2), 'utf8');
+  // Write then rename, so a crash mid-write can't leave a truncated file that
+  // load() would silently replace with defaults.
+  const tmp = FILE + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(next, null, 2), 'utf8');
+  fs.renameSync(tmp, FILE);
   return next;
 }
 
