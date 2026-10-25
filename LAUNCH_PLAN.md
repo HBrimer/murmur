@@ -96,5 +96,10 @@ and HBrimer's Claude (engine pipeline and UI), as agreed in Tandem plan v2.
 - **Real engine test passed** (app's own modules, outside the UI): `base.en` downloaded to
   `%APPDATA%/Murmur/models`, engine status went to ready; `jfk.wav` and `jfk.mp3` both
   transcribed correctly in ~2 s with timestamps and a summary; cancel mid-job works.
-  Still to click through by hand in the window: drag-and-drop, Record, Batch, exports.
+- **Manual UI test passed (HBrimer):** pick file, drag-and-drop, stray-drop guard, txt/md/srt
+  export, mic recording + silence, batch (re-run skips done), cancel, search/delete, pro licence
+  activate/remove, settings. All OK.
+- **Packaged build OK:** `electron-builder --win --dir` (unsigned test build) ships `bin/` in
+  `resources/bin`; the packaged whisper-cli transcribes jfk.wav and `Murmur.exe` starts cleanly.
+  Next: signed NSIS installer once the code-signing certificate exists.
 - Skipped for now by choice: storefront (Lemon Squeezy, $39/$79 decided) and code-signing certificate.
