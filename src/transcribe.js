@@ -25,6 +25,20 @@ function probeEngine(preferred) {
   };
 }
 
+// whisper.cpp marks silence with tokens like [BLANK_AUDIO]; drop those so a
+// silent file reports "no speech" instead of a fake transcript.
+const NON_SPEECH = /^\[(BLANK_AUDIO|silence|no speech)\]$/i;
+
+function parseSegments(raw) {
+  return ((raw && raw.transcription) || [])
+    .map((t) => ({
+      from: t.timestamps ? t.timestamps.from : '',
+      to: t.timestamps ? t.timestamps.to : '',
+      text: (t.text || '').trim()
+    }))
+    .filter((s) => s.text && !NON_SPEECH.test(s.text));
+}
+
 function runWhisper(wavPath, opts, onProgress, signal) {
   const model = engine.resolveModel(opts.model);
   const bin = engine.binaryPath();
@@ -66,11 +80,7 @@ function runWhisper(wavPath, opts, onProgress, signal) {
       try {
         const raw = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
         try { fs.unlinkSync(jsonPath); } catch {}
-        const segments = (raw.transcription || []).map((t) => ({
-          from: t.timestamps ? t.timestamps.from : '',
-          to: t.timestamps ? t.timestamps.to : '',
-          text: (t.text || '').trim()
-        }));
+        const segments = parseSegments(raw);
         resolve({
           engine: `whisper.cpp (${path.basename(model)})`,
           text: segments.map((s) => s.text).join(' ').replace(/\s+/g, ' ').trim(),
@@ -103,4 +113,4 @@ async function transcribe(filePath, { onProgress = () => {}, signal, model, lang
   }
 }
 
-module.exports = { transcribe, probeEngine };
+module.exports = { transcribe, probeEngine, parseSegments };

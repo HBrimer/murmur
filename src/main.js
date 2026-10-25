@@ -10,20 +10,17 @@ const { summarize } = require('./summarize');
 const settings = require('./settings');
 const license = require('./license');
 const engine = require('./engine');
+const library = require('./library');
 
 const DATA_DIR = path.join(app.getPath('userData'), 'library');
-const INDEX_FILE = path.join(DATA_DIR, 'index.json');
 
 function ensureStore() {
   fs.mkdirSync(DATA_DIR, { recursive: true });
-  if (!fs.existsSync(INDEX_FILE)) fs.writeFileSync(INDEX_FILE, '[]', 'utf8');
+  library.init(DATA_DIR);
   settings.init(app.getPath('userData'));
   license.init(app.getPath('userData'));
   engine.setUserModelsDir(path.join(app.getPath('userData'), 'models'));
 }
-
-const readIndex = () => { try { return JSON.parse(fs.readFileSync(INDEX_FILE, 'utf8')); } catch { return []; } };
-const writeIndex = (items) => fs.writeFileSync(INDEX_FILE, JSON.stringify(items, null, 2), 'utf8');
 
 let win;
 let currentJob = null; // AbortController for the active transcription
@@ -38,6 +35,11 @@ function createWindow() {
     }
   });
   win.removeMenu();
+
+  // A file dropped outside the drop zone would otherwise replace the UI with that
+  // file. Keep the window on the app page and never open new windows.
+  win.webContents.on('will-navigate', (e) => e.preventDefault());
+  win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
 
   // Allow only the microphone (for live recording); deny everything else.
   win.webContents.session.setPermissionRequestHandler((_wc, permission, cb) => {
@@ -81,16 +83,12 @@ ipcMain.handle('license:activate', async (_e, key) => license.activate(key));
 ipcMain.handle('license:deactivate', async () => license.deactivate());
 
 // ---------- library ----------
-ipcMain.handle('library:list', async () => readIndex());
-ipcMain.handle('library:get', async (_e, id) => {
-  const f = path.join(DATA_DIR, `${id}.json`);
-  return fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : null;
-});
+ipcMain.handle('library:list', async () => library.readIndex());
+ipcMain.handle('library:get', async (_e, id) => library.readRecord(id));
 ipcMain.handle('library:delete', async (_e, id) => {
-  const f = path.join(DATA_DIR, `${id}.json`);
-  if (fs.existsSync(f)) fs.unlinkSync(f);
-  const items = readIndex().filter((it) => it.id !== id);
-  writeIndex(items);
+  library.deleteRecord(id);
+  const items = library.readIndex().filter((it) => it.id !== id);
+  library.writeIndex(items);
   return items;
 });
 
@@ -142,10 +140,10 @@ ipcMain.handle('job:run', async (_e, { filePath, title }) => {
       createdAt: new Date(started).toISOString(), durationMs: Date.now() - started,
       engine: transcript.engine, text: transcript.text, segments: transcript.segments || [], summary
     };
-    fs.writeFileSync(path.join(DATA_DIR, `${id}.json`), JSON.stringify(record, null, 2), 'utf8');
-    const items = readIndex();
+    library.writeRecord(record);
+    const items = library.readIndex();
     items.unshift({ id, title: record.title, createdAt: record.createdAt, engine: record.engine });
-    writeIndex(items);
+    library.writeIndex(items);
     return { ok: true, record };
   } catch (err) {
     return { ok: false, error: err.message, cancelled: err.message === 'cancelled' };
@@ -156,9 +154,8 @@ ipcMain.handle('job:run', async (_e, { filePath, title }) => {
 
 // ---------- export ----------
 ipcMain.handle('export:save', async (_e, { id, format }) => {
-  const f = path.join(DATA_DIR, `${id}.json`);
-  if (!fs.existsSync(f)) return null;
-  const rec = JSON.parse(fs.readFileSync(f, 'utf8'));
+  const rec = library.readRecord(id);
+  if (!rec) return null;
   const lic = license.status();
   const footer = lic.licensed ? '' : '\n\n—\nTranscribed with Murmur (trial).';
 
@@ -181,7 +178,13 @@ ipcMain.handle('export:save', async (_e, { id, format }) => {
     defaultPath: path.join(st.lastExportDir || app.getPath('documents'), `${rec.title.replace(/\.[^.]+$/, '')}.${ext}`)
   });
   if (res.canceled || !res.filePath) return null;
-  fs.writeFileSync(res.filePath, body, 'utf8');
+  try {
+    fs.writeFileSync(res.filePath, body, 'utf8');
+  } catch (err) {
+    // The renderer doesn't await this call, so report the failure here.
+    dialog.showErrorBox('Export failed', `Could not save ${res.filePath}:\n${err.message}`);
+    return null;
+  }
   settings.save({ lastExportDir: path.dirname(res.filePath) });
   shell.showItemInFolder(res.filePath);
   return res.filePath;
