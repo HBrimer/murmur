@@ -1,0 +1,20 @@
+{
+ "v": 2,
+ "teamId": "bf98de2caa899b64c9e1beee",
+ "hostId": "f7af64e950969710",
+ "epoch": 1,
+ "updated": 1792898223535,
+ "members": [
+  {
+   "id": "f7af64e950969710",
+   "signPub": "coha0z7UnqKpm5gGAG8LtyaPuCDsxxkR5GZdAQ-aYcE",
+   "boxPub": "eydYZZC4vBwbrrJ0YD95IN1yQaUCCvg-q_eEskMkr1w",
+   "role": "host",
+   "joined": 1792898223535
+  }
+ ],
+ "wraps": {
+  "f7af64e950969710": "kTeCGJNdXfIxPLYSNxzjSvTDFVkxuSC+Gp9jMriPxRQEdGfdXJod2BwsnsbP5qLQagCDKU8/9SKGaf0Oq795KP4/X99NDg4a0lDebFXIit+qxiTHgy2KHskWWpFFVu2O5q9+oLMqkD/5WXZJ5Ko5U/K05alj9wBAobJZqg=="
+ },
+ "sig": "RKQG4thqOr1FZteAJFQzrOAB/O2y/+MVNeZ3tcom7huP8hdpYZ0LOXdemXi9R4r90uKfRdbxH1FvIIJFrGFUCw=="
+}
