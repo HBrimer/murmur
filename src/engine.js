@@ -139,8 +139,13 @@ function startDownload(key, onProgress) {
       if ([301, 302, 303, 307, 308].includes(res.statusCode)) {
         if (redirects > 5) return reject(new Error('Too many redirects'));
         res.resume();
-        // Location may be relative; resolve against the current URL.
-        return get(new URL(res.headers.location, url).toString(), resolve, rejectRaw, redirects + 1);
+        // Location may be relative; resolve against the current URL. A missing or
+        // malformed one would throw inside this callback and crash the main process.
+        let next;
+        try { next = new URL(res.headers.location, url).toString(); } catch {
+          return reject(new Error('Download failed: bad redirect'));
+        }
+        return get(next, resolve, rejectRaw, redirects + 1);
       }
       if (res.statusCode !== 200) {
         res.resume();

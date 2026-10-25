@@ -1,78 +1,85 @@
 'use strict';
 
-// Local transcript library: one <id>.json per record plus an index.json list.
-//
-// Stand-in written by HBrimer's Claude to the API nigga's Claude specified, so
-// main can start. Replace it wholesale with their version when it lands.
-
+// Transcript library on disk: one <id>.json per record plus an index.json
+// listing { id, title, createdAt, engine } newest first.
 const path = require('path');
 const fs = require('fs');
 
 let DIR = null;
-const ID_RE = /^[\w-]+$/;
+let INDEX_FILE = null;
 
-function init(dir) {
-  DIR = dir;
+function init(dataDir) {
+  DIR = dataDir;
+  INDEX_FILE = path.join(dataDir, 'index.json');
   fs.mkdirSync(DIR, { recursive: true });
 }
 
-const indexFile = () => path.join(DIR, 'index.json');
-const recordFile = (id) => path.join(DIR, `${id}.json`);
-
-// Write to a temp file then rename, so a crash mid-write can't truncate the target.
+// Write then rename, so a crash mid-write can't leave a truncated file.
 function writeAtomic(file, data) {
-  const tmp = `${file}.${process.pid}.tmp`;
+  const tmp = file + '.tmp';
   fs.writeFileSync(tmp, JSON.stringify(data, null, 2), 'utf8');
   fs.renameSync(tmp, file);
 }
 
+// Ids come from the renderer; keep them to a plain file name inside DIR.
+const recordFile = (id) =>
+  typeof id === 'string' && /^[\w-]+$/.test(id) ? path.join(DIR, `${id}.json`) : null;
+
 function readRecord(id) {
-  if (typeof id !== 'string' || !ID_RE.test(id)) return null;
-  try { return JSON.parse(fs.readFileSync(recordFile(id), 'utf8')); } catch { return null; }
+  const f = recordFile(id);
+  if (!f) return null;
+  try {
+    return JSON.parse(fs.readFileSync(f, 'utf8'));
+  } catch {
+    return null; // missing or corrupt
+  }
 }
 
 function writeRecord(record) {
-  if (!record || typeof record.id !== 'string' || !ID_RE.test(record.id)) {
-    throw new Error('Invalid record id');
-  }
-  writeAtomic(recordFile(record.id), record);
+  const f = recordFile(record && record.id);
+  if (!f) throw new Error('invalid record id');
+  writeAtomic(f, record);
 }
 
 function deleteRecord(id) {
-  if (typeof id !== 'string' || !ID_RE.test(id)) return;
-  try { fs.unlinkSync(recordFile(id)); } catch {}
+  const f = recordFile(id);
+  if (f && fs.existsSync(f)) fs.unlinkSync(f);
 }
 
-function writeIndex(items) {
-  writeAtomic(indexFile(), items);
-}
-
-// Rebuild the index from the record files, newest first.
 function rebuildIndex() {
   const items = [];
-  for (const f of fs.readdirSync(DIR)) {
-    if (!f.endsWith('.json') || f === 'index.json') continue;
-    const rec = readRecord(f.slice(0, -5));
-    if (rec && rec.id) items.push({ id: rec.id, title: rec.title, createdAt: rec.createdAt, engine: rec.engine });
+  for (const name of fs.readdirSync(DIR)) {
+    if (!name.endsWith('.json') || name === 'index.json') continue;
+    const rec = readRecord(name.slice(0, -5));
+    if (!rec || !rec.id) continue;
+    items.push({ id: rec.id, title: rec.title, createdAt: rec.createdAt, engine: rec.engine });
   }
-  items.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
-  writeIndex(items);
+  items.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
   return items;
 }
 
 function readIndex() {
   let raw;
-  try { raw = fs.readFileSync(indexFile(), 'utf8'); } catch (err) {
-    if (err.code === 'ENOENT') return [];
-    throw err;
+  try {
+    raw = fs.readFileSync(INDEX_FILE, 'utf8');
+  } catch (e) {
+    if (e.code === 'ENOENT') return [];
+    throw e;
   }
   try {
     const items = JSON.parse(raw);
     if (Array.isArray(items)) return items;
-  } catch {}
-  // Corrupt or not a list: keep a copy for inspection, then rebuild from the records.
-  try { fs.copyFileSync(indexFile(), `${indexFile()}.corrupt-${Date.now()}`); } catch {}
-  return rebuildIndex();
+  } catch { /* fall through */ }
+  // Keep the damaged file and rebuild from the records, instead of letting the
+  // next writeIndex() erase every past transcript.
+  fs.copyFileSync(INDEX_FILE, `${INDEX_FILE}.corrupt-${Date.now()}`);
+  const items = rebuildIndex();
+  writeIndex(items);
+  return items;
+}
+
+function writeIndex(items) {
+  writeAtomic(INDEX_FILE, items);
 }
 
 module.exports = { init, readIndex, writeIndex, readRecord, writeRecord, deleteRecord, rebuildIndex };
