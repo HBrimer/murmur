@@ -22,7 +22,7 @@
       { "from": "bin", "to": "bin", "filter": ["**/*"] },
       { "from": "models", "to": "models", "filter": ["**/*"] }
     ],
-    "win": { "target": "nsis", "artifactName": "Murmur-Setup-${version}.${ext}" },
+    "win": { "target": "nsis", "icon": "build/icon.ico", "artifactName": "Murmur-Setup-${version}.${ext}" },
     "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true, "perMachine": false },
     "mac": { "target": "dmg", "category": "public.app-category.productivity" },
     "linux": { "target": "AppImage", "category": "Office" }
