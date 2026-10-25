@@ -771,3 +771,15 @@ details p {
   .wave span { animation: none; }
   .button, .card { transition: none; }
 }
+
+/* Footer links and legal pages */
+.footer-links { display: flex; gap: 20px; flex-wrap: wrap; }
+.footer-links a { color: var(--muted); text-decoration: none; }
+.footer-links a:hover { color: var(--text, #fff); text-decoration: underline; }
+.legal h1 { font-size: clamp(1.8rem, 4vw, 2.4rem); margin: 0 0 6px; }
+.legal h2 { font-size: 1.2rem; margin: 36px 0 10px; }
+.legal p, .legal li { line-height: 1.65; }
+.legal ul { padding-left: 1.2em; }
+.legal li { margin: 6px 0; }
+.legal .updated { color: var(--muted); margin: 0 0 28px; }
+.legal code { font-size: 0.9em; overflow-wrap: anywhere; }

@@ -81,3 +81,20 @@ and HBrimer's Claude (engine pipeline and UI), as agreed in Tandem plan v2.
 - Running the built app from a VS Code terminal: VS Code sets `ELECTRON_RUN_AS_NODE=1`, which makes `Murmur.exe` exit right away without a window. Clear that variable first, or launch the app from Explorer.
 - Downloaded models now live under `userData` (resolved), so updates/reinstalls don't wipe them.
 - Version is `0.1.0`. Bump it to `1.0.0` for launch.
+
+## 4. Progress 2026-10-24 (evening)
+
+- `npm test`: 30/30 pass.
+- **Keypair generated.** Public key is in `src/license.js`; private key is at `secrets/license_private.pem` (gitignored).
+  A test `pro` key verifies. **Still to do: back up the private key offline.**
+- **Engine files in `bin/`:** whisper.cpp b5454 `whisper-cli.exe` + `whisper.dll` + `ggml*.dll` (CPU build, x64),
+  and FFmpeg n9.0 **LGPL shared** build (`ffmpeg.exe` + `av*/sw*` DLLs). Licence texts in `bin/licenses/`.
+- **Sample audio** for the checklist: `test-media/jfk.wav`, `test-media/jfk.mp3` (gitignored). `test-media/run-murmur.cmd` starts the app with `ELECTRON_RUN_AS_NODE` cleared.
+- **Site:** `docs/privacy.html` and `docs/eula.html` (incl. 30-day refund policy and third-party notices), footer links + support email (harrison.brimer@gmail.com).
+  GitHub Pages was already on (`main` → `/docs`); the new pages go live once this branch is merged to `main`.
+- **App fix:** mic recordings (temp `murmur-rec-*` files) are now deleted after a successful transcription, and leftovers older than a day are swept at startup, so the privacy policy's claim is true.
+- **Real engine test passed** (app's own modules, outside the UI): `base.en` downloaded to
+  `%APPDATA%/Murmur/models`, engine status went to ready; `jfk.wav` and `jfk.mp3` both
+  transcribed correctly in ~2 s with timestamps and a summary; cancel mid-job works.
+  Still to click through by hand in the window: drag-and-drop, Record, Batch, exports.
+- Skipped for now by choice: storefront (Lemon Squeezy, $39/$79 decided) and code-signing certificate.

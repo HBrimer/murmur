@@ -17,7 +17,10 @@ const path = require('path');
 const fs = require('fs');
 
 // Replace via: `node scripts/licensing.js keygen`
-const PUBLIC_KEY_PEM = ``;
+const PUBLIC_KEY_PEM = `-----BEGIN PUBLIC KEY-----
+MCowBQYDK2VwAyEAnvLjujdbRV1asxHn29VeWzu7s2JiLrpm1BaUVw9KVM4=
+-----END PUBLIC KEY-----
+`;
 
 let FILE = null;
 function init(userDataDir) {
