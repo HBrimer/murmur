@@ -25,7 +25,7 @@ async function refreshEngine() {
   const e = await api.probeEngine();
   const dot = $('#engineDot'), label = $('#engineLabel');
   dot.className = 'dot ' + (e.ready ? 'ok' : 'demo');
-  label.textContent = e.ready ? 'offline engine ready' : 'demo mode';
+  label.textContent = e.ready ? 'Offline engine ready' : 'Setup needed';
   label.title = e.hint;
   return e;
 }
@@ -76,6 +76,12 @@ function bindProgress() {
 }
 async function runFile(filePath, title) {
   if (!filePath) return;
+  const eng = await api.probeEngine();
+  if (!eng.ready) {
+    alert(eng.hint + '\n\nOpening Setup so you can finish installing the engine.');
+    document.querySelector('[data-view="setup"]').click();
+    return;
+  }
   show('progress'); $('#bar').style.width = '0%'; $('#progStage').textContent = 'starting';
   bindProgress();
   try {
@@ -94,7 +100,11 @@ $('#pickBtn').onclick = async () => { const fs = await api.pickAudio(); if (fs.l
 const dz = $('#dropzone');
 ['dragenter', 'dragover'].forEach((ev) => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.add('drag'); }));
 ['dragleave', 'drop'].forEach((ev) => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.remove('drag'); }));
-dz.addEventListener('drop', (e) => { const f = e.dataTransfer.files[0]; if (f && f.path) runFile(f.path); });
+dz.addEventListener('drop', (e) => {
+  const f = e.dataTransfer.files[0];
+  const p = f && api.pathForFile(f);
+  if (p) runFile(p);
+});
 
 // ---------- RECORD ----------
 let mediaRecorder = null, chunks = [], recTimer = null, recStart = 0;
@@ -156,11 +166,11 @@ $('#batchClear').onclick = () => { queue = []; renderBatch(); $('#batchStatus').
 $('#batchRun').onclick = async () => {
   bindProgress();
   for (const item of queue) {
-    if (item.state === 'done') continue;
+    if (item.state === '✓ done') continue;
     item.state = 'transcribing…'; renderBatch();
     $('#batchStatus').textContent = `Processing ${item.title}…`;
     const res = await api.runJob(item.path, item.title);
-    item.state = res.ok ? '✓ done' : (res.cancelled ? 'cancelled' : 'failed');
+    item.state = res.ok ? '✓ done' : (res.cancelled ? 'cancelled' : 'failed: ' + String(res.error || '').split('\n')[0]);
     renderBatch();
     if (res.ok) await refreshLibrary();
   }
@@ -172,7 +182,7 @@ $('#batchRun').onclick = async () => {
 async function renderSetup() {
   const e = await api.probeEngine();
   $('#binStatus').textContent = e.status.hasBinary
-    ? '✓ whisper binary found.' : '✗ whisper binary not found yet.';
+    ? '✓ whisper.cpp engine found.' : '✗ whisper.cpp engine not found yet.';
   const cat = await api.catalog();
   const ul = $('#modelList'); ul.innerHTML = '';
   cat.forEach((m) => {
@@ -200,6 +210,7 @@ async function downloadModel(key, btn) {
   else { btn.disabled = false; btn.textContent = 'Retry'; alert('Download failed: ' + res.error); }
 }
 $('#openBin').onclick = () => api.openBinDir();
+if ($('#openModels')) $('#openModels').onclick = () => api.openModelsDir();
 
 // ---------- SETTINGS ----------
 async function renderSettings() {

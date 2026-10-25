@@ -1,0 +1,171 @@
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: #fafaf7;
+  color: #1a1a1a;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+a {
+  color: #1f4fa3;
+}
+
+a:hover {
+  color: #163a78;
+}
+
+h1, h2, h3 {
+  line-height: 1.25;
+  margin: 0 0 0.5em;
+}
+
+h1 { font-size: 2rem; }
+h2 { font-size: 1.4rem; }
+h3 { font-size: 1.1rem; }
+
+p {
+  margin: 0 0 1em;
+}
+
+.wrap {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* header */
+
+.site-header {
+  border-bottom: 1px solid #ddd;
+  padding: 16px 0;
+}
+
+.site-header .wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.site-header a {
+  text-decoration: none;
+}
+
+/* intro */
+
+.hero {
+  padding: 48px 0 24px;
+}
+
+.hero p {
+  font-size: 1.1rem;
+  color: #444;
+}
+
+/* sections */
+
+.section {
+  padding: 32px 0;
+  border-top: 1px solid #e5e5e0;
+}
+
+.steps {
+  margin: 0;
+  padding-left: 1.4em;
+}
+
+.steps li {
+  margin-bottom: 0.6em;
+}
+
+/* pricing */
+
+.pricing {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.plan {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 20px;
+  background: #fff;
+}
+
+.plan h3 {
+  margin-bottom: 0.25em;
+}
+
+.plan ul {
+  padding-left: 1.2em;
+  margin: 0 0 1em;
+}
+
+/* faq */
+
+.faq dt,
+.faq h3 {
+  font-weight: 600;
+  margin-top: 1.2em;
+}
+
+.faq dd {
+  margin: 0.3em 0 0;
+}
+
+.faq details {
+  border-bottom: 1px solid #e5e5e0;
+  padding: 10px 0;
+}
+
+.faq summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+/* buttons */
+
+.button {
+  display: inline-block;
+  padding: 8px 16px;
+  border: 1px solid #1f4fa3;
+  border-radius: 4px;
+  background: #1f4fa3;
+  color: #fff;
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: #163a78;
+  border-color: #163a78;
+  color: #fff;
+}
+
+/* footer */
+
+.site-footer {
+  border-top: 1px solid #ddd;
+  padding: 24px 0 40px;
+  margin-top: 32px;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+@media (max-width: 560px) {
+  body { font-size: 16px; }
+  h1 { font-size: 1.6rem; }
+  .hero { padding-top: 32px; }
+  .pricing { grid-template-columns: 1fr; }
+}

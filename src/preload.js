@@ -1,6 +1,6 @@
 'use strict';
 
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 // Explicit, minimal bridge. The renderer can only call what's listed here.
 contextBridge.exposeInMainWorld('murmur', {
@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('murmur', {
   catalog: () => ipcRenderer.invoke('engine:catalog'),
   downloadModel: (key) => ipcRenderer.invoke('engine:download', key),
   openBinDir: () => ipcRenderer.invoke('engine:openBinDir'),
+  openModelsDir: () => ipcRenderer.invoke('engine:openModelsDir'),
   onDownloadProgress: (cb) => {
     const h = (_e, p) => cb(p); ipcRenderer.on('engine:download-progress', h);
     return () => ipcRenderer.removeListener('engine:download-progress', h);
@@ -31,6 +32,8 @@ contextBridge.exposeInMainWorld('murmur', {
   // input
   pickAudio: () => ipcRenderer.invoke('audio:pick'),
   pickFolder: () => ipcRenderer.invoke('audio:pickFolder'),
+  // Electron 32+ removed File.path; resolve dropped files' paths here.
+  pathForFile: (file) => { try { return webUtils.getPathForFile(file) || ''; } catch { return ''; } },
   saveRecording: (bytes, ext) => ipcRenderer.invoke('audio:saveRecording', { bytes, ext }),
 
   // job

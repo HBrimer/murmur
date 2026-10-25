@@ -9,4 +9,8 @@ secrets/
 # Shipped engine assets are large; distribute via your build pipeline / releases
 bin/whisper*
 bin/ffmpeg*
+bin/main*
+bin/*.dll
+bin/*.dylib
+bin/*.so
 models/*.bin

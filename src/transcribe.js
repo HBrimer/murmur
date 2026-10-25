@@ -3,8 +3,8 @@
 // Offline speech-to-text orchestration:
 //   input media --(ffmpeg)--> 16kHz mono wav --(whisper.cpp)--> transcript JSON
 //
-// Falls back to a clearly-labelled DEMO transcript when no engine is installed,
-// so the whole app stays runnable. Nothing here opens a network socket.
+// If the engine isn't installed, transcribe() fails with a clear, actionable
+// error (no placeholder text). Nothing here opens a network socket.
 
 const path = require('path');
 const fs = require('fs');
@@ -21,9 +21,7 @@ function probeEngine(preferred) {
     hasBinary: s.hasBinary,
     activeModel: s.activeModel,
     ffmpeg: ffmpeg.available(),
-    hint: s.ready
-      ? s.hint
-      : 'Running in DEMO mode. Add the whisper.cpp engine in Setup to enable real offline transcription.'
+    hint: s.hint
   };
 }
 
@@ -32,7 +30,9 @@ function runWhisper(wavPath, opts, onProgress, signal) {
   const bin = engine.binaryPath();
   const outPrefix = path.join(os.tmpdir(), `murmur-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`);
 
-  const args = ['-m', model, '-f', wavPath, '-oj', '-of', outPrefix, '-pp'];
+  if (!model) return Promise.reject(new Error('No speech model installed. Open Setup and download one.'));
+  const threads = Math.max(1, Math.min(8, (os.cpus() || []).length - 1 || 1));
+  const args = ['-m', model, '-f', wavPath, '-t', String(threads), '-oj', '-of', outPrefix, '-pp'];
   if (opts.language && opts.language !== 'auto') args.push('-l', opts.language);
   if (opts.translate) args.push('-tr');
 
@@ -41,17 +41,29 @@ function runWhisper(wavPath, opts, onProgress, signal) {
     const onAbort = () => { try { child.kill(); } catch {} };
     if (signal) signal.addEventListener('abort', onAbort, { once: true });
 
-    child.stderr.on('data', (d) => {
-      const m = /progress\s*=\s*(\d+)%/i.exec(d.toString());
-      if (m) onProgress({ stage: 'transcribing', percent: Number(m[1]) });
-    });
-    child.on('error', reject);
+    let errTail = '';
+    const onOutput = (d) => {
+      const txt = d.toString();
+      errTail = (errTail + txt).slice(-4000);
+      const all = [...txt.matchAll(/progress\s*=\s*(\d+)%/gi)];
+      if (all.length) onProgress({ stage: 'transcribing', percent: Number(all[all.length - 1][1]) });
+    };
+    child.stderr.on('data', onOutput);
+    child.stdout.on('data', onOutput);
+    child.on('error', (err) => reject(new Error(
+      err.code === 'ENOENT' || err.code === 'EACCES'
+        ? `Could not start the transcription engine (${err.code}). Check the whisper-cli binary in Setup.`
+        : err.message
+    )));
     child.on('close', (code) => {
       if (signal) signal.removeEventListener('abort', onAbort);
-      if (signal && signal.aborted) return reject(new Error('cancelled'));
-      if (code !== 0) return reject(new Error(`whisper exited with code ${code}`));
+      const jsonPath = `${outPrefix}.json`;
+      if (signal && signal.aborted) { try { fs.unlinkSync(jsonPath); } catch {} return reject(new Error('cancelled')); }
+      if (code !== 0) {
+        const lastLines = errTail.trim().split('\n').filter((l) => !/progress\s*=/.test(l)).slice(-3).join('\n');
+        return reject(new Error(`Transcription engine failed (exit code ${code}).` + (lastLines ? `\n${lastLines}` : '')));
+      }
       try {
-        const jsonPath = `${outPrefix}.json`;
         const raw = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
         try { fs.unlinkSync(jsonPath); } catch {}
         const segments = (raw.transcription || []).map((t) => ({
@@ -71,44 +83,18 @@ function runWhisper(wavPath, opts, onProgress, signal) {
   });
 }
 
-function demoTranscript(onProgress, signal) {
-  return new Promise((resolve, reject) => {
-    const lines = [
-      "Thanks everyone for joining. This is a Murmur demo transcript generated locally.",
-      "Because no whisper.cpp engine is installed yet, we're showing placeholder text.",
-      "The point of this mode is that every other part of the app is real and working.",
-      "Summaries, search, batch processing, the local library, and export all run on this.",
-      "Open Setup, download a model, and this same screen transcribes your actual audio.",
-      "Nothing you process here is ever uploaded. The whole pipeline stays on your own disk.",
-      "That privacy guarantee is the core of what makes this worth paying for."
-    ];
-    let i = 0;
-    const segments = [];
-    const stamp = (s) => `00:00:${String(s).padStart(2, '0')},000`;
-    const tick = () => {
-      if (signal && signal.aborted) return reject(new Error('cancelled'));
-      if (i < lines.length) {
-        const sec = i * 6;
-        segments.push({ from: stamp(sec), to: stamp(sec + 6), text: lines[i] });
-        onProgress({ stage: 'transcribing', percent: Math.round(((i + 1) / lines.length) * 100) });
-        i++;
-        setTimeout(tick, 180);
-      } else {
-        resolve({ engine: 'demo (no engine installed)', text: lines.join(' '), segments });
-      }
-    };
-    tick();
-  });
-}
-
 async function transcribe(filePath, { onProgress = () => {}, signal, model, language, translate } = {}) {
   onProgress({ stage: 'starting', percent: 0 });
   const s = engine.status(model);
 
-  if (!s.ready) return demoTranscript(onProgress, signal);
+  if (!s.ready) {
+    throw new Error(s.hasBinary
+      ? 'No speech model installed. Open Setup and download one to start transcribing.'
+      : 'The offline transcription engine is not installed. Open Setup to finish installing it.');
+  }
 
   onProgress({ stage: 'preparing audio', percent: null });
-  const conv = await Promise.resolve(ffmpeg.toWav(filePath));
+  const conv = await Promise.resolve(ffmpeg.toWav(filePath, signal));
   try {
     if (signal && signal.aborted) throw new Error('cancelled');
     return await runWhisper(conv.wavPath, { model, language, translate }, onProgress, signal);

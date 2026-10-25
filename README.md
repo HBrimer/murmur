@@ -35,8 +35,8 @@ privacy/compliance need directly, sell through their communities, then expand.
 - **Licensing** — offline key verification with a trial mode
 - **Setup** — detects the engine and can download a model on request
 
-Runs today in **demo mode** (placeholder transcript) so every feature is testable;
-becomes a real transcriber once you add the engine in **Setup**.
+Transcription is real (no placeholder text). Until the engine and a model are
+installed, the app sends the user to **Setup** with a clear message.
 
 ## Architecture
 
@@ -44,7 +44,7 @@ becomes a real transcriber once you add the engine in **Setup**.
 src/
   main.js        Electron main — all local I/O, IPC, job orchestration
   preload.js     Locked-down contextBridge (the only renderer surface)
-  transcribe.js  ffmpeg -> whisper.cpp pipeline, cancel + progress, demo fallback
+  transcribe.js  ffmpeg -> whisper.cpp pipeline, cancel + progress, clear errors
   ffmpeg.js      Any media -> 16kHz mono WAV (bundled or system ffmpeg)
   engine.js      Finds binary/models; optional model download (see privacy note)
   summarize.js   On-device extractive summarizer, no deps
@@ -70,8 +70,10 @@ scripts/
 
 Built around [whisper.cpp](https://github.com/ggerganov/whisper.cpp):
 
-1. Build/download a whisper.cpp executable → `bin/whisper.exe` (Win) or `bin/whisper`.
-2. In the app, open **Setup** and download a model (or drop a `ggml-*.bin` in `models/`).
+1. Download a whisper.cpp release and put `whisper-cli.exe` **plus its DLLs** in `bin/`
+   (mac/Linux: `bin/whisper-cli`). Older names `whisper`/`main` are also detected.
+2. In the app, open **Setup** and download a model. Downloads go to the user-data
+   `models/` folder; bundled `ggml-*.bin` files in the app's `models/` also work.
 3. (Recommended) put an **ffmpeg** binary in `bin/` or install it on PATH, so non-WAV
    files work.
 4. Restart — the sidebar status turns green ("offline engine ready").

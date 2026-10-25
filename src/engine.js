@@ -12,28 +12,56 @@ const path = require('path');
 const fs = require('fs');
 const https = require('https');
 
+// Packaged build: extraResources live in process.resourcesPath. In dev
+// (`electron .`), process.defaultApp is true and assets live in the repo root.
 function appRoot() {
-  return process.resourcesPath && fs.existsSync(path.join(process.resourcesPath, 'models'))
+  return process.resourcesPath && !process.defaultApp
     ? process.resourcesPath
     : path.join(__dirname, '..');
 }
 
+// Downloaded models go to a user-writable folder (set by main from userData),
+// because the install/resources folder may be read-only. Bundled models in the
+// app's own models/ folder are still picked up.
+let userModelsDir = null;
+function setUserModelsDir(dir) { userModelsDir = dir; }
+
 function dirs() {
   const root = appRoot();
-  return { binDir: path.join(root, 'bin'), modelsDir: path.join(root, 'models') };
+  return {
+    binDir: path.join(root, 'bin'),
+    bundledModelsDir: path.join(root, 'models'),
+    modelsDir: userModelsDir || path.join(root, 'models')
+  };
 }
 
+// whisper.cpp renamed its CLI over time: whisper-cli (current), main (old),
+// plus our own historical name "whisper". Use the first one present.
+const BINARY_NAMES = ['whisper-cli', 'whisper', 'main'];
+
 function binaryPath() {
-  const exe = process.platform === 'win32' ? 'whisper.exe' : 'whisper';
-  return path.join(dirs().binDir, exe);
+  const ext = process.platform === 'win32' ? '.exe' : '';
+  const { binDir } = dirs();
+  const found = BINARY_NAMES.map((n) => path.join(binDir, n + ext)).find((p) => fs.existsSync(p));
+  return found || path.join(binDir, BINARY_NAMES[0] + ext);
 }
 
 function listModels() {
-  const { modelsDir } = dirs();
-  if (!fs.existsSync(modelsDir)) return [];
-  return fs.readdirSync(modelsDir)
-    .filter((f) => f.endsWith('.bin'))
-    .map((f) => ({ name: f, path: path.join(modelsDir, f), size: fs.statSync(path.join(modelsDir, f)).size }));
+  const { modelsDir, bundledModelsDir } = dirs();
+  const seen = new Set();
+  const out = [];
+  for (const dir of [modelsDir, bundledModelsDir]) {
+    if (!fs.existsSync(dir)) continue;
+    for (const f of fs.readdirSync(dir)) {
+      if (!f.endsWith('.bin') || seen.has(f)) continue;
+      const p = path.join(dir, f);
+      const size = fs.statSync(p).size;
+      if (size < 1024 * 1024) continue; // skip truncated/broken files
+      seen.add(f);
+      out.push({ name: f, path: p, size });
+    }
+  }
+  return out;
 }
 
 function resolveModel(preferred) {
@@ -58,7 +86,7 @@ function status(preferred) {
     hint: hasBin && model
       ? 'Local whisper.cpp engine detected. Transcription runs fully offline.'
       : !hasBin
-        ? 'whisper.cpp binary missing. Place it in the bin folder (see Setup).'
+        ? 'whisper.cpp binary missing. Place whisper-cli in the bin folder (see Setup).'
         : 'No model found. Download one in Setup or drop a .bin into the models folder.'
   };
 }
@@ -71,6 +99,7 @@ const CATALOG = {
   'medium.en': { file: 'ggml-medium.en.bin', mb: 1500, note: 'high accuracy, slower' },
   'large-v3':  { file: 'ggml-large-v3.bin',  mb: 3100, note: 'best, multilingual, slow' }
 };
+const DEFAULT_MODEL = 'base.en'; // HBrimer to confirm: size vs accuracy trade-off
 const HF_BASE = 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/';
 
 function catalog() {
@@ -87,12 +116,14 @@ function downloadModel(key, onProgress = () => {}) {
   const dest = path.join(modelsDir, entry.file);
   const tmp = dest + '.part';
 
-  const get = (url, resolve, reject, redirects = 0) => {
+  const get = (url, resolve, rejectRaw, redirects = 0) => {
+    const reject = (err) => { try { fs.unlinkSync(tmp); } catch {} rejectRaw(err); };
     https.get(url, (res) => {
       if ([301, 302, 303, 307, 308].includes(res.statusCode)) {
         if (redirects > 5) return reject(new Error('Too many redirects'));
         res.resume();
-        return get(res.headers.location, resolve, reject, redirects + 1);
+        // Location may be relative; resolve against the current URL.
+        return get(new URL(res.headers.location, url).toString(), resolve, rejectRaw, redirects + 1);
       }
       if (res.statusCode !== 200) {
         res.resume();
@@ -109,13 +140,22 @@ function downloadModel(key, onProgress = () => {}) {
           totalMb: total ? +(total / 1048576).toFixed(1) : null
         });
       });
+      res.on('error', (err) => { out.destroy(); reject(err); });
+      res.on('aborted', () => { out.destroy(); reject(new Error('Download interrupted. Check your connection and retry.')); });
       res.pipe(out);
-      out.on('finish', () => out.close(() => { fs.renameSync(tmp, dest); resolve({ ok: true, path: dest, file: entry.file }); }));
+      out.on('finish', () => out.close(() => {
+        if (total && received !== total) return reject(new Error('Download incomplete. Please retry.'));
+        try { fs.renameSync(tmp, dest); } catch (err) { return reject(err); }
+        resolve({ ok: true, path: dest, file: entry.file });
+      }));
       out.on('error', reject);
-    }).on('error', reject);
+    }).on('error', (err) => reject(new Error('Download failed: ' + err.message)));
   };
 
   return new Promise((resolve, reject) => get(HF_BASE + entry.file, resolve, reject));
 }
 
-module.exports = { status, listModels, resolveModel, binaryPath, dirs, catalog, downloadModel, CATALOG };
+module.exports = {
+  status, listModels, resolveModel, binaryPath, dirs, catalog, downloadModel,
+  setUserModelsDir, CATALOG, DEFAULT_MODEL
+};

@@ -19,6 +19,7 @@ function ensureStore() {
   if (!fs.existsSync(INDEX_FILE)) fs.writeFileSync(INDEX_FILE, '[]', 'utf8');
   settings.init(app.getPath('userData'));
   license.init(app.getPath('userData'));
+  engine.setUserModelsDir(path.join(app.getPath('userData'), 'models'));
 }
 
 const readIndex = () => { try { return JSON.parse(fs.readFileSync(INDEX_FILE, 'utf8')); } catch { return []; } };
@@ -69,6 +70,7 @@ ipcMain.handle('engine:download', async (_e, key) => {
     return { ok: false, error: err.message };
   }
 });
+ipcMain.handle('engine:openModelsDir', async () => { const d = engine.dirs(); fs.mkdirSync(d.modelsDir, { recursive: true }); shell.openPath(d.modelsDir); return d.modelsDir; });
 ipcMain.handle('engine:openBinDir', async () => { const d = engine.dirs(); fs.mkdirSync(d.binDir, { recursive: true }); shell.openPath(d.binDir); return d.binDir; });
 
 ipcMain.handle('settings:get', async () => settings.load());
@@ -121,6 +123,8 @@ ipcMain.handle('audio:saveRecording', async (_e, { bytes, ext }) => {
 ipcMain.handle('job:cancel', async () => { if (currentJob) currentJob.abort(); return true; });
 
 ipcMain.handle('job:run', async (_e, { filePath, title }) => {
+  if (currentJob) return { ok: false, error: 'Another transcription is already running.' };
+  if (!filePath || !fs.existsSync(filePath)) return { ok: false, error: 'File not found: ' + (filePath || '(none)') };
   const started = Date.now();
   const st = settings.load();
   currentJob = new AbortController();
@@ -130,6 +134,7 @@ ipcMain.handle('job:run', async (_e, { filePath, title }) => {
       signal: currentJob.signal,
       model: st.model, language: st.language, translate: st.translate
     });
+    if (!transcript.text) throw new Error('No speech was detected in this file.');
     const summary = summarize(transcript.text, { sentences: st.summarySentences });
     const id = `${started}-${Math.random().toString(36).slice(2, 8)}`;
     const record = {
