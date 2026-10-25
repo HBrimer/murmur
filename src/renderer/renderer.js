@@ -97,6 +97,8 @@ $('#cancelBtn').onclick = () => api.cancelJob();
 
 // ---------- NEW / drop ----------
 $('#pickBtn').onclick = async () => { const fs = await api.pickAudio(); if (fs.length) runFile(fs[0]); };
+// Drops that miss the drop zone are ignored instead of navigating the window.
+['dragover', 'drop'].forEach((ev) => document.addEventListener(ev, (e) => e.preventDefault()));
 const dz = $('#dropzone');
 ['dragenter', 'dragover'].forEach((ev) => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.add('drag'); }));
 ['dragleave', 'drop'].forEach((ev) => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.remove('drag'); }));
@@ -118,7 +120,7 @@ $('#recStart').onclick = async () => {
       stream.getTracks().forEach((t) => t.stop());
       const blob = new Blob(chunks, { type: 'audio/webm' });
       const buf = new Uint8Array(await blob.arrayBuffer());
-      const p = await api.saveRecording(Array.from(buf), 'webm');
+      const p = await api.saveRecording(buf, 'webm');
       runFile(p, 'Recording ' + new Date().toLocaleString());
     };
     mediaRecorder.start();
@@ -164,18 +166,30 @@ $('#batchAddFolder').onclick = async () => {
 };
 $('#batchClear').onclick = () => { queue = []; renderBatch(); $('#batchStatus').textContent = ''; };
 $('#batchRun').onclick = async () => {
-  bindProgress();
-  for (const item of queue) {
-    if (item.state === '✓ done') continue;
-    item.state = 'transcribing…'; renderBatch();
-    $('#batchStatus').textContent = `Processing ${item.title}…`;
-    const res = await api.runJob(item.path, item.title);
-    item.state = res.ok ? '✓ done' : (res.cancelled ? 'cancelled' : 'failed: ' + String(res.error || '').split('\n')[0]);
-    renderBatch();
-    if (res.ok) await refreshLibrary();
+  const eng = await api.probeEngine();
+  if (!eng.ready) {
+    alert(eng.hint + '\n\nOpening Setup so you can finish installing the engine.');
+    document.querySelector('[data-view="setup"]').click();
+    return;
   }
-  if (detach) { detach(); detach = null; }
-  $('#batchStatus').textContent = 'Queue complete.';
+  const btn = $('#batchRun');
+  btn.disabled = true;
+  bindProgress();
+  try {
+    for (const item of queue) {
+      if (item.state === '✓ done') continue;
+      item.state = 'transcribing…'; renderBatch();
+      $('#batchStatus').textContent = `Processing ${item.title}…`;
+      const res = await api.runJob(item.path, item.title);
+      item.state = res.ok ? '✓ done' : (res.cancelled ? 'cancelled' : 'failed: ' + String(res.error || '').split('\n')[0]);
+      renderBatch();
+      if (res.ok) await refreshLibrary();
+    }
+    $('#batchStatus').textContent = 'Queue complete.';
+  } finally {
+    btn.disabled = false;
+    if (detach) { detach(); detach = null; }
+  }
 };
 
 // ---------- SETUP ----------
@@ -188,7 +202,8 @@ async function renderSetup() {
   cat.forEach((m) => {
     const li = document.createElement('li');
     li.innerHTML =
-      `<div><div class="mname">${m.key}</div><div class="mnote">${m.note} · ~${m.mb} MB</div></div>` +
+      `<div><div class="mname">${m.key}${m.recommended ? ' <span class="badge-ok">recommended</span>' : ''}</div>` +
+      `<div class="mnote">${m.note} · ~${m.mb} MB</div></div>` +
       `<span class="spacer"></span>` +
       (m.installed
         ? `<span class="badge-ok">✓ installed</span>`

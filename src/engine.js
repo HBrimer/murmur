@@ -99,16 +99,33 @@ const CATALOG = {
   'medium.en': { file: 'ggml-medium.en.bin', mb: 1500, note: 'high accuracy, slower' },
   'large-v3':  { file: 'ggml-large-v3.bin',  mb: 3100, note: 'best, multilingual, slow' }
 };
-const DEFAULT_MODEL = 'base.en'; // HBrimer to confirm: size vs accuracy trade-off
+const DEFAULT_MODEL = 'base.en'; // marked "recommended" in Setup
 const HF_BASE = 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/';
 
 function catalog() {
   const installed = new Set(listModels().map((m) => m.name));
-  return Object.entries(CATALOG).map(([key, v]) => ({ key, ...v, installed: installed.has(v.file) }));
+  return Object.entries(CATALOG).map(([key, v]) => ({
+    key, ...v, installed: installed.has(v.file), recommended: key === DEFAULT_MODEL
+  }));
 }
+
+// Abort a download if the connection sits idle this long, so it can't hang forever.
+const DOWNLOAD_IDLE_TIMEOUT_MS = 60 * 1000;
+
+// One download per model at a time: two writers on the same .part file corrupt it.
+const inFlight = new Map();
 
 // Download a model with progress + redirect handling. onProgress({percent,receivedMb,totalMb})
 function downloadModel(key, onProgress = () => {}) {
+  if (inFlight.has(key)) return inFlight.get(key);
+  const p = startDownload(key, onProgress);
+  inFlight.set(key, p);
+  const clear = () => inFlight.delete(key);
+  p.then(clear, clear);
+  return p;
+}
+
+function startDownload(key, onProgress) {
   const entry = CATALOG[key];
   if (!entry) return Promise.reject(new Error('Unknown model: ' + key));
   const { modelsDir } = dirs();
@@ -118,7 +135,7 @@ function downloadModel(key, onProgress = () => {}) {
 
   const get = (url, resolve, rejectRaw, redirects = 0) => {
     const reject = (err) => { try { fs.unlinkSync(tmp); } catch {} rejectRaw(err); };
-    https.get(url, (res) => {
+    const req = https.get(url, (res) => {
       if ([301, 302, 303, 307, 308].includes(res.statusCode)) {
         if (redirects > 5) return reject(new Error('Too many redirects'));
         res.resume();
@@ -149,7 +166,11 @@ function downloadModel(key, onProgress = () => {}) {
         resolve({ ok: true, path: dest, file: entry.file });
       }));
       out.on('error', reject);
-    }).on('error', (err) => reject(new Error('Download failed: ' + err.message)));
+    });
+    req.on('error', (err) => reject(new Error('Download failed: ' + err.message)));
+    req.setTimeout(DOWNLOAD_IDLE_TIMEOUT_MS, () => {
+      req.destroy(new Error('connection stalled. Check your connection and retry.'));
+    });
   };
 
   return new Promise((resolve, reject) => get(HF_BASE + entry.file, resolve, reject));
