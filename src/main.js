@@ -1,0 +1,185 @@
+'use strict';
+
+const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
+const path = require('path');
+const fs = require('fs');
+const os = require('os');
+
+const { transcribe, probeEngine } = require('./transcribe');
+const { summarize } = require('./summarize');
+const settings = require('./settings');
+const license = require('./license');
+const engine = require('./engine');
+
+const DATA_DIR = path.join(app.getPath('userData'), 'library');
+const INDEX_FILE = path.join(DATA_DIR, 'index.json');
+
+function ensureStore() {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  if (!fs.existsSync(INDEX_FILE)) fs.writeFileSync(INDEX_FILE, '[]', 'utf8');
+  settings.init(app.getPath('userData'));
+  license.init(app.getPath('userData'));
+}
+
+const readIndex = () => { try { return JSON.parse(fs.readFileSync(INDEX_FILE, 'utf8')); } catch { return []; } };
+const writeIndex = (items) => fs.writeFileSync(INDEX_FILE, JSON.stringify(items, null, 2), 'utf8');
+
+let win;
+let currentJob = null; // AbortController for the active transcription
+
+function createWindow() {
+  win = new BrowserWindow({
+    width: 1200, height: 800, minWidth: 940, minHeight: 620,
+    backgroundColor: '#0f1115', title: 'Murmur',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true, nodeIntegration: false, sandbox: true
+    }
+  });
+  win.removeMenu();
+
+  // Allow only the microphone (for live recording); deny everything else.
+  win.webContents.session.setPermissionRequestHandler((_wc, permission, cb) => {
+    cb(permission === 'media');
+  });
+
+  win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+}
+
+app.whenReady().then(() => {
+  ensureStore();
+  createWindow();
+  app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
+});
+app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
+
+const send = (ch, payload) => { if (win && !win.isDestroyed()) win.webContents.send(ch, payload); };
+
+// ---------- engine / settings / license ----------
+ipcMain.handle('engine:probe', async () => {
+  const st = settings.load();
+  return { ...probeEngine(st.model), status: engine.status(st.model), catalog: engine.catalog() };
+});
+ipcMain.handle('engine:catalog', async () => engine.catalog());
+ipcMain.handle('engine:download', async (_e, key) => {
+  try {
+    const r = await engine.downloadModel(key, (p) => send('engine:download-progress', { key, ...p }));
+    return { ok: true, ...r };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+});
+ipcMain.handle('engine:openBinDir', async () => { const d = engine.dirs(); fs.mkdirSync(d.binDir, { recursive: true }); shell.openPath(d.binDir); return d.binDir; });
+
+ipcMain.handle('settings:get', async () => settings.load());
+ipcMain.handle('settings:set', async (_e, patch) => settings.save(patch));
+
+ipcMain.handle('license:get', async () => license.status());
+ipcMain.handle('license:activate', async (_e, key) => license.activate(key));
+ipcMain.handle('license:deactivate', async () => license.deactivate());
+
+// ---------- library ----------
+ipcMain.handle('library:list', async () => readIndex());
+ipcMain.handle('library:get', async (_e, id) => {
+  const f = path.join(DATA_DIR, `${id}.json`);
+  return fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : null;
+});
+ipcMain.handle('library:delete', async (_e, id) => {
+  const f = path.join(DATA_DIR, `${id}.json`);
+  if (fs.existsSync(f)) fs.unlinkSync(f);
+  const items = readIndex().filter((it) => it.id !== id);
+  writeIndex(items);
+  return items;
+});
+
+// ---------- file pickers ----------
+const MEDIA = ['wav', 'mp3', 'm4a', 'flac', 'ogg', 'aac', 'wma', 'mp4', 'mov', 'mkv', 'webm', 'avi'];
+ipcMain.handle('audio:pick', async () => {
+  const res = await dialog.showOpenDialog(win, {
+    title: 'Choose audio or video', properties: ['openFile', 'multiSelections'],
+    filters: [{ name: 'Media', extensions: MEDIA }, { name: 'All files', extensions: ['*'] }]
+  });
+  return res.canceled ? [] : res.filePaths;
+});
+ipcMain.handle('audio:pickFolder', async () => {
+  const res = await dialog.showOpenDialog(win, { title: 'Choose a folder', properties: ['openDirectory'] });
+  if (res.canceled || !res.filePaths[0]) return [];
+  const dir = res.filePaths[0];
+  return fs.readdirSync(dir)
+    .filter((f) => MEDIA.includes(path.extname(f).slice(1).toLowerCase()))
+    .map((f) => path.join(dir, f));
+});
+
+// Mic recording: renderer sends raw bytes; we persist to a temp file to process.
+ipcMain.handle('audio:saveRecording', async (_e, { bytes, ext }) => {
+  const tmp = path.join(os.tmpdir(), `murmur-rec-${Date.now()}.${ext || 'webm'}`);
+  fs.writeFileSync(tmp, Buffer.from(bytes));
+  return tmp;
+});
+
+// ---------- transcription job ----------
+ipcMain.handle('job:cancel', async () => { if (currentJob) currentJob.abort(); return true; });
+
+ipcMain.handle('job:run', async (_e, { filePath, title }) => {
+  const started = Date.now();
+  const st = settings.load();
+  currentJob = new AbortController();
+  try {
+    const transcript = await transcribe(filePath, {
+      onProgress: (p) => send('job:progress', { file: title || path.basename(filePath), ...p }),
+      signal: currentJob.signal,
+      model: st.model, language: st.language, translate: st.translate
+    });
+    const summary = summarize(transcript.text, { sentences: st.summarySentences });
+    const id = `${started}-${Math.random().toString(36).slice(2, 8)}`;
+    const record = {
+      id, title: title || path.basename(filePath), sourcePath: filePath,
+      createdAt: new Date(started).toISOString(), durationMs: Date.now() - started,
+      engine: transcript.engine, text: transcript.text, segments: transcript.segments || [], summary
+    };
+    fs.writeFileSync(path.join(DATA_DIR, `${id}.json`), JSON.stringify(record, null, 2), 'utf8');
+    const items = readIndex();
+    items.unshift({ id, title: record.title, createdAt: record.createdAt, engine: record.engine });
+    writeIndex(items);
+    return { ok: true, record };
+  } catch (err) {
+    return { ok: false, error: err.message, cancelled: err.message === 'cancelled' };
+  } finally {
+    currentJob = null;
+  }
+});
+
+// ---------- export ----------
+ipcMain.handle('export:save', async (_e, { id, format }) => {
+  const f = path.join(DATA_DIR, `${id}.json`);
+  if (!fs.existsSync(f)) return null;
+  const rec = JSON.parse(fs.readFileSync(f, 'utf8'));
+  const lic = license.status();
+  const footer = lic.licensed ? '' : '\n\n—\nTranscribed with Murmur (trial).';
+
+  let body, ext;
+  if (format === 'md') {
+    ext = 'md';
+    body = `# ${rec.title}\n\n_${rec.createdAt}_\n\n## Summary\n\n` +
+      rec.summary.map((s) => `- ${s}`).join('\n') + `\n\n## Transcript\n\n${rec.text}\n${footer}`;
+  } else if (format === 'srt') {
+    ext = 'srt';
+    body = (rec.segments || []).map((s, i) => `${i + 1}\n${s.from} --> ${s.to}\n${s.text}\n`).join('\n');
+  } else {
+    ext = 'txt';
+    body = rec.text + footer;
+  }
+
+  const st = settings.load();
+  const res = await dialog.showSaveDialog(win, {
+    title: 'Export',
+    defaultPath: path.join(st.lastExportDir || app.getPath('documents'), `${rec.title.replace(/\.[^.]+$/, '')}.${ext}`)
+  });
+  if (res.canceled || !res.filePath) return null;
+  fs.writeFileSync(res.filePath, body, 'utf8');
+  settings.save({ lastExportDir: path.dirname(res.filePath) });
+  shell.showItemInFolder(res.filePath);
+  return res.filePath;
+});
+
+ipcMain.handle('store:reveal', async () => { shell.openPath(DATA_DIR); return DATA_DIR; });

@@ -1,0 +1,31 @@
+{
+  "name": "murmur",
+  "productName": "Murmur",
+  "version": "0.1.0",
+  "description": "Private, offline transcription and summaries. Your audio never leaves your machine.",
+  "author": "Harrison Brimer",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder"
+  },
+  "build": {
+    "appId": "com.murmur.app",
+    "productName": "Murmur",
+    "files": ["src/**/*", "package.json"],
+    "extraResources": [
+      { "from": "bin", "to": "bin", "filter": ["**/*"] },
+      { "from": "models", "to": "models", "filter": ["**/*"] }
+    ],
+    "win": { "target": "nsis", "artifactName": "Murmur-Setup-${version}.${ext}" },
+    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true, "perMachine": false },
+    "mac": { "target": "dmg", "category": "public.app-category.productivity" },
+    "linux": { "target": "AppImage", "category": "Office" }
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  }
+}

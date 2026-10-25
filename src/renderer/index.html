@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' blob:;" />
+  <title>Murmur</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">◗</div>
+      <div>
+        <div class="brand-name">Murmur</div>
+        <div class="brand-tag">offline transcription</div>
+      </div>
+      <span id="tierBadge" class="badge">trial</span>
+    </div>
+
+    <nav class="nav">
+      <button class="nav-btn active" data-view="drop">＋ New</button>
+      <button class="nav-btn" data-view="record">● Record</button>
+      <button class="nav-btn" data-view="batch">▦ Batch</button>
+      <button class="nav-btn" data-view="setup">⚙ Setup</button>
+      <button class="nav-btn" data-view="settings">⚑ Settings</button>
+      <button class="nav-btn" data-view="license">★ License</button>
+    </nav>
+
+    <div class="lib-head"><span>Library</span><input id="search" placeholder="Search…" /></div>
+    <ul id="library" class="library"></ul>
+
+    <div class="sidebar-foot">
+      <span id="engineDot" class="dot"></span>
+      <span id="engineLabel">checking…</span>
+    </div>
+    <button id="revealBtn" class="link">Open local data folder</button>
+  </aside>
+
+  <main class="main">
+    <!-- NEW / drop -->
+    <section id="dropView" class="view">
+      <div id="dropzone" class="dropzone">
+        <div class="dz-icon">⇪</div>
+        <h2>Drop audio or video</h2>
+        <p>or <button id="pickBtn" class="inline">choose files</button></p>
+        <p class="muted">Processed entirely on this device. Nothing is uploaded.</p>
+      </div>
+    </section>
+
+    <!-- RECORD -->
+    <section id="recordView" class="view hidden">
+      <div class="centered">
+        <h2>Record from microphone</h2>
+        <div id="recTimer" class="rec-timer">00:00</div>
+        <div class="rec-controls">
+          <button id="recStart" class="primary">● Start recording</button>
+          <button id="recStop" class="danger hidden">■ Stop &amp; transcribe</button>
+        </div>
+        <p class="muted" id="recHint">Your browser will ask for mic permission once.</p>
+      </div>
+    </section>
+
+    <!-- BATCH -->
+    <section id="batchView" class="view hidden">
+      <h2>Batch transcription</h2>
+      <div class="row">
+        <button id="batchAddFiles">Add files…</button>
+        <button id="batchAddFolder">Add folder…</button>
+        <button id="batchRun" class="primary">Run queue</button>
+        <button id="batchClear">Clear</button>
+      </div>
+      <ul id="batchList" class="batch-list"></ul>
+      <p class="muted" id="batchStatus"></p>
+    </section>
+
+    <!-- SETUP -->
+    <section id="setupView" class="view hidden">
+      <h2>Setup — offline engine</h2>
+      <div class="panel">
+        <h3>1 · whisper.cpp binary</h3>
+        <p id="binStatus" class="muted"></p>
+        <button id="openBin">Open bin folder</button>
+        <p class="muted small">Place <code>whisper.exe</code> (Windows) or <code>whisper</code> (mac/Linux) here. Build it from the whisper.cpp project, then restart Murmur.</p>
+      </div>
+      <div class="panel">
+        <h3>2 · Speech model</h3>
+        <p class="muted small">Download runs once and only contacts Hugging Face. Audio is never sent anywhere.</p>
+        <ul id="modelList" class="model-list"></ul>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="settingsView" class="view hidden">
+      <h2>Settings</h2>
+      <div class="panel form">
+        <label>Model
+          <select id="setModel"></select>
+        </label>
+        <label>Language
+          <select id="setLang">
+            <option value="auto">Auto-detect</option>
+            <option value="en">English</option>
+            <option value="es">Spanish</option>
+            <option value="fr">French</option>
+            <option value="de">German</option>
+            <option value="it">Italian</option>
+            <option value="pt">Portuguese</option>
+            <option value="nl">Dutch</option>
+            <option value="ja">Japanese</option>
+            <option value="zh">Chinese</option>
+          </select>
+        </label>
+        <label class="check"><input type="checkbox" id="setTranslate" /> Translate to English</label>
+        <label>Summary length (sentences)
+          <input type="number" id="setSentences" min="1" max="15" />
+        </label>
+      </div>
+    </section>
+
+    <!-- LICENSE -->
+    <section id="licenseView" class="view hidden">
+      <h2>License</h2>
+      <div class="panel">
+        <p id="licStatus" class="muted"></p>
+        <div class="row">
+          <input id="licKey" placeholder="Paste license key…" class="grow" />
+          <button id="licActivate" class="primary">Activate</button>
+          <button id="licRemove" class="danger">Remove</button>
+        </div>
+        <p class="muted small">Keys are verified offline. Trial mode is fully functional; exports carry a small footer line until activated.</p>
+      </div>
+    </section>
+
+    <!-- PROGRESS -->
+    <section id="progressView" class="view hidden">
+      <div class="progress-card">
+        <h2 id="progTitle">Transcribing…</h2>
+        <div class="bar"><div id="bar" class="bar-fill"></div></div>
+        <div id="progStage" class="muted">starting</div>
+        <button id="cancelBtn" class="danger">Cancel</button>
+      </div>
+    </section>
+
+    <!-- RESULT -->
+    <section id="resultView" class="view hidden">
+      <header class="result-head">
+        <div><h2 id="rTitle">—</h2><div id="rMeta" class="muted"></div></div>
+        <div class="actions">
+          <button data-export="txt">.txt</button>
+          <button data-export="md">.md</button>
+          <button data-export="srt">.srt</button>
+          <button id="delBtn" class="danger">Delete</button>
+        </div>
+      </header>
+      <div class="panel"><h3>Summary</h3><ul id="summary" class="summary"></ul></div>
+      <div class="panel"><h3>Transcript</h3><div id="transcript" class="transcript"></div></div>
+    </section>
+  </main>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

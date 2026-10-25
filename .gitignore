@@ -1,0 +1,12 @@
+node_modules/
+dist/
+out.log
+err.log
+
+# Licensing: never commit your signing key
+secrets/
+
+# Shipped engine assets are large; distribute via your build pipeline / releases
+bin/whisper*
+bin/ffmpeg*
+models/*.bin
