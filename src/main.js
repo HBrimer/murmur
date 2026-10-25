@@ -110,9 +110,30 @@ ipcMain.handle('audio:pickFolder', async () => {
     .map((f) => path.join(dir, f));
 });
 
+// Mic recordings are temp files: delete them once transcribed, and sweep any
+// left over from failed/abandoned jobs (older than a day) at startup.
+const REC_PREFIX = 'murmur-rec-';
+function isTempRecording(p) {
+  return path.dirname(path.resolve(p)) === path.resolve(os.tmpdir()) && path.basename(p).startsWith(REC_PREFIX);
+}
+function removeTempRecording(p) {
+  if (isTempRecording(p)) { try { fs.unlinkSync(p); } catch {} }
+}
+function sweepTempRecordings() {
+  try {
+    const cutoff = Date.now() - 86400000;
+    for (const f of fs.readdirSync(os.tmpdir())) {
+      if (!f.startsWith(REC_PREFIX)) continue;
+      const full = path.join(os.tmpdir(), f);
+      try { if (fs.statSync(full).mtimeMs < cutoff) fs.unlinkSync(full); } catch {}
+    }
+  } catch {}
+}
+sweepTempRecordings();
+
 // Mic recording: renderer sends raw bytes; we persist to a temp file to process.
 ipcMain.handle('audio:saveRecording', async (_e, { bytes, ext }) => {
-  const tmp = path.join(os.tmpdir(), `murmur-rec-${Date.now()}.${ext || 'webm'}`);
+  const tmp = path.join(os.tmpdir(), `${REC_PREFIX}${Date.now()}.${ext || 'webm'}`);
   fs.writeFileSync(tmp, Buffer.from(bytes));
   return tmp;
 });
@@ -144,6 +165,7 @@ ipcMain.handle('job:run', async (_e, { filePath, title }) => {
     const items = library.readIndex();
     items.unshift({ id, title: record.title, createdAt: record.createdAt, engine: record.engine });
     library.writeIndex(items);
+    removeTempRecording(filePath);
     return { ok: true, record };
   } catch (err) {
     return { ok: false, error: err.message, cancelled: err.message === 'cancelled' };
