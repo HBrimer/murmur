@@ -14,6 +14,13 @@ bin/*.dll
 bin/*.dylib
 bin/*.so
 models/*.bin
+.deps-cache/
+bin/.deps-version
+.deps-cache/
+bin/.deps-version
 
 # Local test audio
 test-media/
+
+.deps-cache/
+bin/.deps-version

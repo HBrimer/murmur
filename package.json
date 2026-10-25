@@ -9,6 +9,8 @@
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
+    "fetch-deps": "node scripts/fetch-deps.js",
+    "predist": "node scripts/fetch-deps.js",
     "dist": "electron-builder",
     "test": "node --test"
   },
