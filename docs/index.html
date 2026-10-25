@@ -5,92 +5,205 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Murmur - offline transcription</title>
   <meta name="description" content="Transcribe audio and video on your own computer. Your audio never leaves your machine.">
+  <meta name="theme-color" content="#0f1115">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%236ea8fe'/%3E%3Cstop offset='1' stop-color='%238b7bf0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Cpath d='M9 19v-6M13 22V10M17 20v-8M21 23V9M25 18v-4' stroke='white' stroke-width='2.2' stroke-linecap='round'/%3E%3C/svg%3E">
+  <!-- No web fonts, trackers or CDNs: the site keeps the same promise as the app. -->
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <header class="site-header">
   <div class="wrap">
-    <a href="./">Murmur</a>
+    <a class="brand" href="./">
+      <span class="logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M5 14v-4M9 17V7M13 15V9M17 18V6M21 13v-2"/></svg>
+      </span>
+      Murmur
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+    </nav>
     <!-- TODO: link to the real installer -->
-    <a class="button" href="#">Download</a>
+    <a class="button small" href="#">Download</a>
   </div>
 </header>
 
 <main>
   <section class="hero">
-    <div class="wrap">
-      <h1>Transcribe audio on your own computer.</h1>
-      <p>Murmur turns recordings into text without uploading them anywhere. Drop in a file or record from your mic, and you get a transcript and a short summary.</p>
-      <!-- TODO: link to the real installer -->
-      <a class="button" href="#">Download for Windows</a>
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <p class="pill"><span class="dot"></span> 100% on-device. No uploads.</p>
+        <h1>Transcribe audio on <span class="grad">your own computer.</span></h1>
+        <p class="lead">Murmur turns recordings into text without uploading them anywhere. Drop in a file or record from your mic, and you get a transcript and a short summary.</p>
+        <div class="cta">
+          <!-- TODO: link to the real installer -->
+          <a class="button" href="#">Download for Windows</a>
+          <a class="button ghost" href="#pricing">See pricing</a>
+        </div>
+        <p class="fine">One-time purchase. Free trial, fully functional.</p>
+      </div>
+
+      <div class="mock" aria-hidden="true">
+        <div class="mock-bar"><i></i><i></i><i></i><span>Murmur</span></div>
+        <div class="mock-body">
+          <div class="mock-side">
+            <b class="on">New</b><b>Record</b><b>Batch</b><b>Library</b><b>Settings</b>
+          </div>
+          <div class="mock-main">
+            <div class="mock-file">
+              <span class="file-icon"></span>
+              <div><strong>client-session-03.m4a</strong><small>42:17 · English</small></div>
+              <span class="ok">Done</span>
+            </div>
+            <div class="wave"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+            <p class="mock-label">Summary</p>
+            <div class="line w90"></div><div class="line w75"></div><div class="line w60"></div>
+            <p class="mock-label">Transcript</p>
+            <div class="line w95"></div><div class="line w85"></div><div class="line w90"></div><div class="line w40"></div>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
-  <section class="section">
+  <section class="strip">
+    <div class="wrap strip-grid">
+      <p><strong>0</strong> bytes of audio uploaded</p>
+      <p><strong>txt · md · srt</strong> export</p>
+      <p><strong>Windows</strong> first</p>
+      <p><strong>No</strong> subscription</p>
+    </div>
+  </section>
+
+  <section class="section" id="features">
     <div class="wrap">
-      <h2>What it does</h2>
-      <ul>
-        <li>Opens mp3, m4a, wav, mp4, mov, mkv and other audio or video files.</li>
-        <li>Records straight from your microphone.</li>
-        <li>Queues a batch of files or a whole folder.</li>
-        <li>Writes a short summary of each transcript.</li>
-        <li>Keeps a searchable library on your disk. Delete anything, any time.</li>
-        <li>Exports to txt, md or srt.</li>
+      <p class="eyebrow">Features</p>
+      <h2>Everything you need, nothing that phones home.</h2>
+      <div class="cards">
+        <article class="card">
+          <span class="icon"><svg viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg></span>
+          <h3>Any audio or video</h3>
+          <p>Opens mp3, m4a, wav, mp4, mov, mkv and other audio or video files.</p>
+        </article>
+        <article class="card">
+          <span class="icon"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span>
+          <h3>Record from your mic</h3>
+          <p>Capture a meeting or a note straight from your microphone.</p>
+        </article>
+        <article class="card">
+          <span class="icon"><svg viewBox="0 0 24 24"><path d="M3 7h18M3 12h18M3 17h12"/></svg></span>
+          <h3>Batch processing</h3>
+          <p>Queue a stack of files or a whole folder and let it run.</p>
+        </article>
+        <article class="card">
+          <span class="icon"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 10h10M4 14h16M4 18h7"/></svg></span>
+          <h3>Automatic summaries</h3>
+          <p>Get the key points of each transcript, written on your machine.</p>
+        </article>
+        <article class="card">
+          <span class="icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg></span>
+          <h3>Searchable library</h3>
+          <p>Every transcript is kept on your disk. Search it, or delete anything, any time.</p>
+        </article>
+        <article class="card">
+          <span class="icon"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg></span>
+          <h3>Export anywhere</h3>
+          <p>Save as txt, md or srt subtitles for video.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section privacy">
+    <div class="wrap privacy-grid">
+      <div>
+        <p class="eyebrow">Privacy</p>
+        <h2>Your recordings stay yours.</h2>
+        <p>Made for people who can't send audio to a cloud service: therapists, lawyers, doctors, journalists. Transcription runs entirely on your computer, so there is no account, no server and no upload.</p>
+      </div>
+      <ul class="checks">
+        <li>Transcription works with the network unplugged</li>
+        <li>Licenses are checked offline</li>
+        <li>Data lives in your own user folder</li>
+        <li>The only download is the speech model, when you ask for it</li>
       </ul>
     </div>
   </section>
 
-  <section class="section">
+  <section class="section" id="how">
     <div class="wrap">
-      <h2>How it works</h2>
+      <p class="eyebrow">How it works</p>
+      <h2>Three steps, then it just works.</h2>
       <ol class="steps">
-        <li>Install Murmur and download a speech model once from the Setup screen.</li>
-        <li>Add a file or start a recording.</li>
-        <li>Read, search or export the transcript.</li>
+        <li><span>1</span><h3>Install</h3><p>Install Murmur and download a speech model once from the Setup screen.</p></li>
+        <li><span>2</span><h3>Add audio</h3><p>Drop in a file or start a recording.</p></li>
+        <li><span>3</span><h3>Use it</h3><p>Read, search or export the transcript.</p></li>
       </ol>
     </div>
   </section>
 
-  <section class="section pricing">
+  <section class="section" id="pricing">
     <div class="wrap">
-      <h2>Pricing</h2>
-      <p>Pay once. No subscription.</p>
-      <div class="plan">
-        <h3>Personal</h3>
-        <p>$39</p>
-        <p>The full app and every export format.</p>
-        <!-- TODO: storefront checkout link -->
-        <a class="button" href="#">Buy Personal</a>
-      </div>
-      <div class="plan">
-        <h3>Pro</h3>
-        <p>$79</p>
-        <!-- TODO: confirm what Pro includes before launch -->
-        <p>Everything in Personal, plus batch processing and larger models.</p>
-        <!-- TODO: storefront checkout link -->
-        <a class="button" href="#">Buy Pro</a>
+      <p class="eyebrow center">Pricing</p>
+      <h2 class="center">Pay once. No subscription.</h2>
+      <div class="plans">
+        <div class="plan">
+          <h3>Personal</h3>
+          <p class="price">$39<small>one-time</small></p>
+          <p>The full app and every export format.</p>
+          <!-- TODO: storefront checkout link -->
+          <a class="button ghost" href="#">Buy Personal</a>
+        </div>
+        <div class="plan featured">
+          <p class="tag">Most capable</p>
+          <h3>Pro</h3>
+          <p class="price">$79<small>one-time</small></p>
+          <!-- TODO: confirm what Pro includes before launch -->
+          <p>Everything in Personal, plus batch processing and larger models.</p>
+          <!-- TODO: storefront checkout link -->
+          <a class="button" href="#">Buy Pro</a>
+        </div>
       </div>
     </div>
   </section>
 
-  <section class="section faq">
+  <section class="section" id="faq">
+    <div class="wrap narrow">
+      <p class="eyebrow center">FAQ</p>
+      <h2 class="center">Questions</h2>
+      <details>
+        <summary>Does my audio get uploaded?</summary>
+        <p>No. Transcription runs on your computer and your files stay on your disk.</p>
+      </details>
+      <details>
+        <summary>Does Murmur use the internet at all?</summary>
+        <p>Only when you click Download in Setup to fetch a speech model from Hugging Face. After that it works offline.</p>
+      </details>
+      <details>
+        <summary>Where is my data kept?</summary>
+        <p>In your user data folder. Settings has a button that opens it.</p>
+      </details>
+    </div>
+  </section>
+
+  <section class="final">
     <div class="wrap">
-      <h2>Questions</h2>
-      <h3>Does my audio get uploaded?</h3>
-      <p>No. Transcription runs on your computer and your files stay on your disk.</p>
-      <h3>Does Murmur use the internet at all?</h3>
-      <p>Only when you click Download in Setup to fetch a speech model from Hugging Face. After that it works offline.</p>
-      <h3>Where is my data kept?</h3>
-      <p>In your user data folder. Settings has a button that opens it.</p>
+      <h2>Try Murmur free.</h2>
+      <p>The trial has every feature. Buy a key when you're ready.</p>
+      <!-- TODO: link to the real installer -->
+      <a class="button" href="#">Download for Windows</a>
     </div>
   </section>
 </main>
 
 <footer class="site-footer">
   <div class="wrap">
+    <span class="brand small-brand"><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 14v-4M9 17V7M13 15V9M17 18V6M21 13v-2"/></svg></span>Murmur</span>
     <!-- TODO: contact email -->
-    <p>Murmur</p>
+    <p>Private, offline transcription.</p>
   </div>
 </footer>
 
