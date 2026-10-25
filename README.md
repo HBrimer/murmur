@@ -1,111 +1,169 @@
+<div align="center">
+
 # Murmur
-Website https://hbrimer.github.io/murmur/
-**Private, offline transcription & summaries.** Transcribe audio/video files or live
-mic recordings, get an auto-summary and a searchable local library, and export to
-txt / md / srt — all on-device. Your audio never leaves your machine.
 
-## Why this sells
+**Private, offline transcription and summaries for Windows.**
 
-Paid apps in this space (MacWhisper, Superwhisper) already prove people pay. Murmur's
-opening wedge:
+Transcribe audio and video files or live mic recordings, get an automatic summary and a
+searchable local library, and export to txt, md or srt. Everything runs on your device.
+Your audio never leaves your machine.
 
-- **Windows is underserved** — the popular paid apps are Mac-first.
-- **Privacy is the product** — therapists, lawyers, doctors, journalists, execs who
-  can't send audio to a cloud service. "100% on-device" is a moat free web tools can't cross.
-- **Own-it pricing** — one-time purchase in a market full of subscriptions.
+[Website](https://hbrimer.github.io/murmur/) ·
+[Features](#features) ·
+[Quick start](#quick-start) ·
+[Architecture](#architecture) ·
+[Privacy](#privacy)
 
-### Suggested pricing
-- **$39 one-time (Personal)** — core app, all export formats.
-- **$79 one-time (Pro)** — batch processing, larger models, (future) speaker labels.
-- Keep the offline core subscription-free.
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-6ea8fe)
+![Electron](https://img.shields.io/badge/electron-33-8b7bf0)
+![Engine](https://img.shields.io/badge/engine-whisper.cpp-39d98a)
+![License](https://img.shields.io/badge/license-proprietary-8b93a7)
 
-### Go-to-market
-Niche-first: pick one audience (e.g. private-practice therapists), speak to their
-privacy/compliance need directly, sell through their communities, then expand.
+<img src="docs/assets/app-screenshot.png" alt="Murmur showing a transcript with its summary" width="820">
 
-## Features (all working)
+</div>
 
-- **Import** — drag-drop or pick audio/video (mp3, m4a, wav, mp4, mov, mkv, …)
-- **Record** — capture straight from the microphone and transcribe
-- **Batch** — queue many files or a whole folder
-- **Summaries** — on-device extractive summarizer (TextRank, zero dependencies)
-- **Library** — searchable, local, delete anytime
-- **Export** — txt / md / srt
-- **Settings** — model, language, translate-to-English, summary length
-- **Licensing** — offline key verification with a trial mode
-- **Setup** — detects the engine and can download a model on request
+## Features
 
-Transcription is real (no placeholder text). Until the engine and a model are
-installed, the app sends the user to **Setup** with a clear message.
+| | |
+|---|---|
+| **Import** | Drag and drop or pick audio/video (mp3, m4a, wav, mp4, mov, mkv, …) |
+| **Record** | Capture straight from the microphone and transcribe |
+| **Batch** | Queue many files or a whole folder |
+| **Summaries** | On-device extractive summarizer (TextRank, zero dependencies) |
+| **Library** | Searchable, stored locally, delete any time |
+| **Export** | txt, md and srt |
+| **Settings** | Model, language, translate to English, summary length |
+| **Licensing** | Offline key verification with a fully functional trial |
+| **Setup** | Detects the engine and can download a model on request |
+
+Until the engine and a model are installed, the app sends you to **Setup** with a clear message.
+
+## Quick start
+
+**Requirements:** [Node.js](https://nodejs.org/) 18 or newer.
+
+```bash
+git clone https://github.com/HBrimer/murmur.git
+cd murmur
+npm install
+npm start
+```
+
+### Enable offline transcription
+
+Murmur is built on [whisper.cpp](https://github.com/ggerganov/whisper.cpp). The binaries are
+large, so they are not in the repository:
+
+1. Download a whisper.cpp release and put `whisper-cli.exe` **plus its DLLs** in `bin/`
+   (macOS/Linux: `bin/whisper-cli`). The older names `whisper` and `main` are also detected.
+2. In the app, open **Setup** and download a model. Downloads go to the user-data
+   `models/` folder. Bundled `ggml-*.bin` files in the app's `models/` folder also work.
+3. Recommended: put an **ffmpeg** binary in `bin/` or install it on your PATH, so files
+   other than WAV work.
+4. Restart the app. The sidebar status turns green ("Offline engine ready").
+
+Everything is detected automatically. No code changes are needed.
+
+## Development
+
+```bash
+npm start        # run the app
+npm test         # run the unit tests (node:test, no extra dependencies)
+npm run dist     # build installers (NSIS / dmg / AppImage) into dist/
+```
+
+Ship the whisper and ffmpeg binaries and any default model through `extraResources`
+(configured in `package.json`) or your release pipeline.
+
+> **Windows tips:** `npm run dist` needs Developer Mode turned on (electron-builder
+> creates symlinks). If you launch the built `Murmur.exe` from a VS Code terminal, clear
+> `ELECTRON_RUN_AS_NODE` first, or it exits without opening a window.
 
 ## Architecture
 
 ```
 src/
-  main.js        Electron main — all local I/O, IPC, job orchestration
-  preload.js     Locked-down contextBridge (the only renderer surface)
-  transcribe.js  ffmpeg -> whisper.cpp pipeline, cancel + progress, clear errors
-  ffmpeg.js      Any media -> 16kHz mono WAV (bundled or system ffmpeg)
-  engine.js      Finds binary/models; optional model download (see privacy note)
-  summarize.js   On-device extractive summarizer, no deps
+  main.js        Electron main process: local I/O, IPC, job orchestration
+  preload.js     Locked-down contextBridge, the only surface the UI can call
+  transcribe.js  ffmpeg -> whisper.cpp pipeline with cancel, progress and clear errors
+  ffmpeg.js      Any media -> 16 kHz mono WAV (bundled or system ffmpeg)
+  engine.js      Finds the binary and models; optional model download
+  library.js     Transcript store with atomic writes and index recovery
+  summarize.js   On-device extractive summarizer, no dependencies
   settings.js    Persisted settings (userData/settings.json)
   license.js     Offline Ed25519 license verification
-  renderer/      UI: New / Record / Batch / Setup / Settings / License
+  renderer/      UI: New, Record, Batch, Setup, Settings, License
 scripts/
-  licensing.js   Seller-side keygen + key signing CLI
+  licensing.js   Seller-side keygen and key-signing CLI
+test/            Unit tests (npm test)
+docs/            Website, served by GitHub Pages
 ```
 
-### Privacy posture (you can state this in marketing)
+## Privacy
 
 - The transcription pipeline makes **no network calls**. Audio stays on disk.
-- The **only** code path that uses the network is the optional model download in
-  Setup (contacts Hugging Face), which runs only when the user clicks Download.
-- All data lives under the OS user-data folder; "Open local data folder" reveals it.
+- The **only** code that uses the network is the optional model download in Setup
+  (Hugging Face), and it runs only when you click Download.
+- All data lives in the OS user-data folder. **Open local data folder** in the sidebar shows it.
+- License keys are verified offline. There is no account and no license server.
 
-> Before launch, do a real audit: run the built app behind a network monitor and
-> confirm zero outbound traffic during transcription, and have the privacy claim
-> reviewed so marketing matches reality.
+> Before launch we will run the built app behind a network monitor to confirm zero
+> outbound traffic during transcription.
 
-## Enable real offline transcription
-
-Built around [whisper.cpp](https://github.com/ggerganov/whisper.cpp):
-
-1. Download a whisper.cpp release and put `whisper-cli.exe` **plus its DLLs** in `bin/`
-   (mac/Linux: `bin/whisper-cli`). Older names `whisper`/`main` are also detected.
-2. In the app, open **Setup** and download a model. Downloads go to the user-data
-   `models/` folder; bundled `ggml-*.bin` files in the app's `models/` also work.
-3. (Recommended) put an **ffmpeg** binary in `bin/` or install it on PATH, so non-WAV
-   files work.
-4. Restart — the sidebar status turns green ("offline engine ready").
-
-No code changes needed; everything is auto-detected.
-
-## Licensing (seller workflow)
+## Licensing (for the seller)
 
 ```bash
-node scripts/licensing.js keygen          # make your keypair; paste the public key
-                                           # into src/license.js PUBLIC_KEY_PEM
+node scripts/licensing.js keygen
+# writes secrets/license_private.pem and prints the public key;
+# paste the public key into PUBLIC_KEY_PEM in src/license.js
+
 node scripts/licensing.js sign --name "Jane Doe" --email jane@x.com --tier pro --days 0
-                                           # prints a license key to give the buyer
+# prints a license key for the buyer (--days 0 = never expires; --tier personal|pro)
 ```
 
-Wire `sign` into your storefront's post-purchase webhook (Gumroad / Lemon Squeezy /
-Paddle) to auto-issue keys. Keep `secrets/` out of version control (already gitignored).
+Connect `sign` to your storefront's post-purchase webhook (Gumroad, Lemon Squeezy or
+Paddle) to issue keys automatically. `secrets/` is gitignored. Never commit it.
 
-## Develop & build
+## Pricing
 
-```bash
-npm install
-npm start          # run the app
-npm run dist       # build installers (NSIS / dmg / AppImage)
-```
+| Personal | Pro |
+|---|---|
+| **$39 one-time** | **$79 one-time** |
+| The full app and every export format | Everything in Personal, plus batch processing and larger models |
 
-Ship the whisper + ffmpeg binaries and any default model via `extraResources`
-(configured in package.json) or your release pipeline — they're gitignored by size.
+The offline core stays subscription-free.
 
-## What's left before you sell it
+<details>
+<summary><strong>Business notes</strong></summary>
 
-- Decide model size(s) to ship (accuracy vs. size/speed).
-- Code-sign the installers (Windows SmartScreen) — needs a cert.
-- Stand up a storefront + wire the licensing webhook.
-- Run the pre-launch network audit above.
+### Why this sells
+
+Paid apps in this space (MacWhisper, Superwhisper) already prove people pay. Murmur's
+opening wedge:
+
+- **Windows is underserved.** The popular paid apps are Mac-first.
+- **Privacy is the product.** Therapists, lawyers, doctors, journalists and executives
+  can't send audio to a cloud service. "100% on-device" is a moat free web tools can't cross.
+- **Own-it pricing.** A one-time purchase in a market full of subscriptions.
+
+### Go-to-market
+
+Niche first: pick one audience (for example private-practice therapists), speak to their
+privacy and compliance needs directly, sell through their communities, then expand.
+
+### Before launch
+
+- Decide which model size(s) to ship (accuracy vs. size and speed).
+- Code-sign the installers (Windows SmartScreen). This needs a certificate.
+- Set up a storefront and connect the licensing webhook.
+- Run the network audit described under [Privacy](#privacy).
+
+See [LAUNCH_PLAN.md](LAUNCH_PLAN.md) for the full checklist and
+[COLLABORATING.md](COLLABORATING.md) for how the team works.
+
+</details>
+
+---
+
+© Harrison Brimer. All rights reserved.

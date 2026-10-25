@@ -8,9 +8,24 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <!-- Icon sprite: referenced below with <use href="#i-…">. -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-wave" viewBox="0 0 24 24"><path d="M5 14v-4M9 17V7M13 15V9M17 18V6M21 13v-2"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></symbol>
+    <symbol id="i-stack" viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5zM3 13l9 5 9-5"/></symbol>
+    <symbol id="i-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></symbol>
+    <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M17 6l3 3M15 8l2 2"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+  </svg>
+
   <aside class="sidebar">
     <div class="brand">
-      <div class="logo">◗</div>
+      <div class="logo"><svg class="ico"><use href="#i-wave"/></svg></div>
       <div>
         <div class="brand-name">Murmur</div>
         <div class="brand-tag">offline transcription</div>
@@ -19,43 +34,50 @@
     </div>
 
     <nav class="nav">
-      <button class="nav-btn active" data-view="drop">＋ New</button>
-      <button class="nav-btn" data-view="record">● Record</button>
-      <button class="nav-btn" data-view="batch">▦ Batch</button>
-      <button class="nav-btn" data-view="setup">⚙ Setup</button>
-      <button class="nav-btn" data-view="settings">⚑ Settings</button>
-      <button class="nav-btn" data-view="license">★ License</button>
+      <button class="nav-btn active" data-view="drop"><svg class="ico"><use href="#i-plus"/></svg>New</button>
+      <button class="nav-btn" data-view="record"><svg class="ico"><use href="#i-mic"/></svg>Record</button>
+      <button class="nav-btn" data-view="batch"><svg class="ico"><use href="#i-stack"/></svg>Batch</button>
+      <button class="nav-btn" data-view="setup"><svg class="ico"><use href="#i-wrench"/></svg>Setup</button>
+      <button class="nav-btn" data-view="settings"><svg class="ico"><use href="#i-sliders"/></svg>Settings</button>
+      <button class="nav-btn" data-view="license"><svg class="ico"><use href="#i-key"/></svg>License</button>
     </nav>
 
-    <div class="lib-head"><span>Library</span><input id="search" placeholder="Search…" /></div>
+    <div class="lib-head">
+      <span>Library</span>
+      <label class="search"><svg class="ico"><use href="#i-search"/></svg><input id="search" placeholder="Search" /></label>
+    </div>
     <ul id="library" class="library"></ul>
 
     <div class="sidebar-foot">
-      <span id="engineDot" class="dot"></span>
-      <span id="engineLabel">checking…</span>
+      <div class="engine">
+        <span id="engineDot" class="dot"></span>
+        <span id="engineLabel">checking…</span>
+      </div>
+      <button id="revealBtn" class="link"><svg class="ico"><use href="#i-folder"/></svg>Open local data folder</button>
     </div>
-    <button id="revealBtn" class="link">Open local data folder</button>
   </aside>
 
   <main class="main">
     <!-- NEW / drop -->
     <section id="dropView" class="view">
       <div id="dropzone" class="dropzone">
-        <div class="dz-icon">⇪</div>
+        <div class="dz-icon"><svg class="ico"><use href="#i-upload"/></svg></div>
         <h2>Drop audio or video</h2>
-        <p>or <button id="pickBtn" class="inline">choose files</button></p>
-        <p class="muted">Processed entirely on this device. Nothing is uploaded.</p>
+        <p>or <button id="pickBtn" class="inline">choose files</button> from your computer</p>
+        <p class="formats">mp3 · m4a · wav · mp4 · mov · mkv · and more</p>
+        <p class="private"><svg class="ico"><use href="#i-lock"/></svg>Processed entirely on this device. Nothing is uploaded.</p>
       </div>
     </section>
 
     <!-- RECORD -->
     <section id="recordView" class="view hidden">
       <div class="centered">
+        <div class="rec-orb"><svg class="ico"><use href="#i-mic"/></svg></div>
         <h2>Record from microphone</h2>
         <div id="recTimer" class="rec-timer">00:00</div>
         <div class="rec-controls">
-          <button id="recStart" class="primary">● Start recording</button>
-          <button id="recStop" class="danger hidden">■ Stop &amp; transcribe</button>
+          <button id="recStart" class="primary">Start recording</button>
+          <button id="recStop" class="danger hidden">Stop &amp; transcribe</button>
         </div>
         <p class="muted" id="recHint">Your browser will ask for mic permission once.</p>
       </div>
@@ -63,28 +85,35 @@
 
     <!-- BATCH -->
     <section id="batchView" class="view hidden">
-      <h2>Batch transcription</h2>
+      <header class="page-head">
+        <h2>Batch transcription</h2>
+        <p class="muted">Queue files or a whole folder and transcribe them one after another.</p>
+      </header>
       <div class="row">
         <button id="batchAddFiles">Add files…</button>
         <button id="batchAddFolder">Add folder…</button>
-        <button id="batchRun" class="primary">Run queue</button>
+        <span class="grow"></span>
         <button id="batchClear">Clear</button>
+        <button id="batchRun" class="primary">Run queue</button>
       </div>
-      <ul id="batchList" class="batch-list"></ul>
+      <div class="panel flush"><ul id="batchList" class="batch-list"></ul></div>
       <p class="muted" id="batchStatus"></p>
     </section>
 
     <!-- SETUP -->
     <section id="setupView" class="view hidden">
-      <h2>Setup — offline engine</h2>
+      <header class="page-head">
+        <h2>Setup</h2>
+        <p class="muted">Install the offline engine once. After that Murmur never needs the internet.</p>
+      </header>
       <div class="panel">
-        <h3>1 · whisper.cpp binary</h3>
+        <h3><span class="step">1</span>whisper.cpp binary</h3>
         <p id="binStatus" class="muted"></p>
-        <button id="openBin">Open bin folder</button>
         <p class="muted small">Place <code>whisper-cli.exe</code> and its DLLs (Windows) or <code>whisper-cli</code> (mac/Linux) here, from the whisper.cpp release, then reopen this page.</p>
+        <button id="openBin">Open bin folder</button>
       </div>
       <div class="panel">
-        <h3>2 · Speech model</h3>
+        <h3><span class="step">2</span>Speech model</h3>
         <p class="muted small">Download runs once and only contacts Hugging Face. Audio is never sent anywhere.</p>
         <ul id="modelList" class="model-list"></ul>
         <button id="openModels">Open models folder</button>
@@ -93,7 +122,10 @@
 
     <!-- SETTINGS -->
     <section id="settingsView" class="view hidden">
-      <h2>Settings</h2>
+      <header class="page-head">
+        <h2>Settings</h2>
+        <p class="muted">Changes are saved automatically.</p>
+      </header>
       <div class="panel form">
         <label>Model
           <select id="setModel"></select>
@@ -121,7 +153,10 @@
 
     <!-- LICENSE -->
     <section id="licenseView" class="view hidden">
-      <h2>License</h2>
+      <header class="page-head">
+        <h2>License</h2>
+        <p class="muted">Keys are verified offline. Trial mode is fully functional; exports carry a small footer line until activated.</p>
+      </header>
       <div class="panel">
         <p id="licStatus" class="muted"></p>
         <div class="row">
@@ -129,13 +164,13 @@
           <button id="licActivate" class="primary">Activate</button>
           <button id="licRemove" class="danger">Remove</button>
         </div>
-        <p class="muted small">Keys are verified offline. Trial mode is fully functional; exports carry a small footer line until activated.</p>
       </div>
     </section>
 
     <!-- PROGRESS -->
     <section id="progressView" class="view hidden">
       <div class="progress-card">
+        <div class="spinner" aria-hidden="true"></div>
         <h2 id="progTitle">Transcribing…</h2>
         <div class="bar"><div id="bar" class="bar-fill"></div></div>
         <div id="progStage" class="muted">starting</div>
@@ -148,13 +183,15 @@
       <header class="result-head">
         <div><h2 id="rTitle">—</h2><div id="rMeta" class="muted"></div></div>
         <div class="actions">
-          <button data-export="txt">.txt</button>
-          <button data-export="md">.md</button>
-          <button data-export="srt">.srt</button>
+          <div class="seg-group">
+            <button data-export="txt">.txt</button>
+            <button data-export="md">.md</button>
+            <button data-export="srt">.srt</button>
+          </div>
           <button id="delBtn" class="danger">Delete</button>
         </div>
       </header>
-      <div class="panel"><h3>Summary</h3><ul id="summary" class="summary"></ul></div>
+      <div class="panel summary-panel"><h3>Summary</h3><ul id="summary" class="summary"></ul></div>
       <div class="panel"><h3>Transcript</h3><div id="transcript" class="transcript"></div></div>
     </section>
   </main>
