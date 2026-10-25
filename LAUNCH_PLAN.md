@@ -70,7 +70,7 @@ and HBrimer's Claude (engine pipeline and UI), as agreed in Tandem plan v2.
    - Activate a license. There should be no traffic (verification is offline).
    - Electron itself can contact Google for spellcheck dictionaries or crash reporting. If you see that, tell the agent so it can turn it off in `main.js`.
 10. **Legal:** write a privacy policy and EULA, and have someone review the "audio never leaves your machine" claim before you market it.
-11. Support email and refund policy for the website.
+11. Support email for the website. **No refunds: all sales are final** (decided 2026-10-24); the free trial is the try-before-you-buy.
 
 ## 3. Packaging notes and risks (for review)
 
@@ -90,7 +90,7 @@ and HBrimer's Claude (engine pipeline and UI), as agreed in Tandem plan v2.
 - **Engine files in `bin/`:** whisper.cpp b5454 `whisper-cli.exe` + `whisper.dll` + `ggml*.dll` (CPU build, x64),
   and FFmpeg n9.0 **LGPL shared** build (`ffmpeg.exe` + `av*/sw*` DLLs). Licence texts in `bin/licenses/`.
 - **Sample audio** for the checklist: `test-media/jfk.wav`, `test-media/jfk.mp3` (gitignored). `test-media/run-murmur.cmd` starts the app with `ELECTRON_RUN_AS_NODE` cleared.
-- **Site:** `docs/privacy.html` and `docs/eula.html` (incl. 30-day refund policy and third-party notices), footer links + support email (harrison.brimer@gmail.com).
+- **Site:** `docs/privacy.html` and `docs/eula.html` (incl. all-sales-final policy and third-party notices), footer links + support email (harrison.brimer@gmail.com).
   GitHub Pages was already on (`main` → `/docs`); the new pages go live once this branch is merged to `main`.
 - **App fix:** mic recordings (temp `murmur-rec-*` files) are now deleted after a successful transcription, and leftovers older than a day are swept at startup, so the privacy policy's claim is true.
 - **Real engine test passed** (app's own modules, outside the UI): `base.en` downloaded to
